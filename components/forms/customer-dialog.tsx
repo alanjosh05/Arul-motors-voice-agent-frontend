@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { DatePicker } from "@/components/date-picker";
 import { FormDialog } from "@/components/forms/form-dialog";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldSeparator } from "@/components/ui/field";
@@ -25,8 +25,9 @@ export function CustomerDialog({
   onCreated?: (id: number) => void;
 }) {
   const editing = !!customer;
-  const [name, setName] = useState("");
-  const [mobile, setMobile] = useState("");
+  // Callers mount the dialog only while it's open, so each opening starts fresh.
+  const [name, setName] = useState(customer?.name ?? "");
+  const [mobile, setMobile] = useState(customer?.mobile_number ?? "");
   const [model, setModel] = useState("");
   const [registration, setRegistration] = useState("");
   const [purchase, setPurchase] = useState<string | null>(todayISO());
@@ -38,18 +39,6 @@ export function CustomerDialog({
   const create = useCreateCustomer();
   const update = useUpdateCustomer();
   const addVehicle = useAddVehicle();
-
-  useEffect(() => {
-    if (!open) return;
-    setName(customer?.name ?? "");
-    setMobile(customer?.mobile_number ?? "");
-    setModel("");
-    setRegistration("");
-    setPurchase(todayISO());
-    setNextDate(null);
-    setNextType(serviceTypes[0]);
-    setErrors({});
-  }, [open, customer]);
 
   const withBike = !editing && (model.trim() !== "" || registration.trim() !== "");
 
@@ -149,7 +138,7 @@ export function CustomerDialog({
                     ))}
                   </SelectContent>
                 </Select>
-                <FieldDescription>The agent will call about this service when it's due.</FieldDescription>
+                <FieldDescription>The agent will call about this service when it’s due.</FieldDescription>
               </Field>
             </div>
           </>

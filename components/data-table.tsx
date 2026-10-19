@@ -56,7 +56,7 @@ export function DataTable<T>({
   initialSorting = [],
   globalFilterFn,
 }: {
-  columns: ColumnDef<T, any>[];
+  columns: ColumnDef<T>[];
   data: T[] | undefined;
   loading?: boolean;
   searchPlaceholder?: string;
@@ -74,6 +74,9 @@ export function DataTable<T>({
   const [globalFilter, setGlobalFilter] = useState("");
   // Filtering long tables runs at lower priority than typing.
   const deferredFilter = useDeferredValue(globalFilter);
+  // TanStack Table returns mutable objects the React Compiler can't memoize; it
+  // skips this component, which is fine (the table memoizes its own row models).
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: data ?? [],
     columns,

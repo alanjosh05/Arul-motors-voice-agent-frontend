@@ -55,7 +55,9 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<LiveStatus>("connecting");
   const [activeCalls, setActiveCalls] = useState<ActiveCall[]>([]);
   const [notifications, setNotifications] = useState<LiveNotification[]>([]);
-  const [seen, setSeen] = useState(0);
+  // Notifications only arrive over the socket, after hydration, so reading
+  // localStorage here can't change the first render.
+  const [seen, setSeen] = useState(readSeen);
   const pending = useRef(new Set<string>());
   const flushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const myName = user?.full_name || user?.username;
@@ -74,8 +76,6 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
     },
     [queryClient],
   );
-
-  useEffect(() => setSeen(readSeen()), []);
 
   useEffect(() => {
     if (!user) return;

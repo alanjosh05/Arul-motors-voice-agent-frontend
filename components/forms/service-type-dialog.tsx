@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { FormDialog } from "@/components/forms/form-dialog";
 import { Field, FieldContent, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldTitle } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -23,30 +23,18 @@ export function ServiceTypeDialog({
   serviceType?: ServiceType;
 }) {
   const editing = !!serviceType;
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [isFree, setIsFree] = useState(false);
-  const [scheduled, setScheduled] = useState(true);
-  const [days, setDays] = useState("");
-  const [km, setKm] = useState("");
-  const [price, setPrice] = useState("");
-  const [active, setActive] = useState(true);
+  // Callers mount the dialog only while it's open, so each opening starts fresh.
+  const [name, setName] = useState(serviceType?.name ?? "");
+  const [description, setDescription] = useState(serviceType?.description ?? "");
+  const [isFree, setIsFree] = useState(serviceType?.is_free ?? false);
+  const [scheduled, setScheduled] = useState(serviceType ? serviceType.interval_days != null : true);
+  const [days, setDays] = useState(serviceType?.interval_days != null ? String(serviceType.interval_days) : "");
+  const [km, setKm] = useState(serviceType?.interval_km != null ? String(serviceType.interval_km) : "");
+  const [price, setPrice] = useState(serviceType?.price != null ? String(serviceType.price) : "");
+  const [active, setActive] = useState(serviceType?.active ?? true);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const create = useCreateServiceType();
   const update = useUpdateServiceType();
-
-  useEffect(() => {
-    if (!open) return;
-    setName(serviceType?.name ?? "");
-    setDescription(serviceType?.description ?? "");
-    setIsFree(serviceType?.is_free ?? false);
-    setScheduled(serviceType ? serviceType.interval_days != null : true);
-    setDays(serviceType?.interval_days != null ? String(serviceType.interval_days) : "");
-    setKm(serviceType?.interval_km != null ? String(serviceType.interval_km) : "");
-    setPrice(serviceType?.price != null ? String(serviceType.price) : "");
-    setActive(serviceType?.active ?? true);
-    setErrors({});
-  }, [open, serviceType]);
 
   async function submit() {
     const next: Record<string, string> = {};

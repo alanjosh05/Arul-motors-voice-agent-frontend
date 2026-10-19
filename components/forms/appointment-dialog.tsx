@@ -1,7 +1,7 @@
 "use client";
 
 import { addDays } from "date-fns";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { CustomerPicker } from "@/components/customer-picker";
 import { DatePicker } from "@/components/date-picker";
 import { FormDialog } from "@/components/forms/form-dialog";
@@ -31,35 +31,23 @@ export function AppointmentDialog({
   const editing = !!appointment;
   const { data: customers = [] } = useCustomers();
   const serviceTypes = useServiceTypeNames();
-  const [customer, setCustomer] = useState<number | null>(null);
-  const [vehicle, setVehicle] = useState<string>("");
-  const [date, setDate] = useState<string | null>(null);
-  const [serviceType, setServiceType] = useState("");
-  const [notes, setNotes] = useState("");
+  // Callers mount the dialog only while it's open, so each opening starts fresh.
+  const [customer, setCustomer] = useState<number | null>(appointment?.customer_id ?? customerId ?? null);
+  const [vehicleChoice, setVehicle] = useState(String(appointment?.vehicle_id ?? vehicleId ?? ""));
+  const [date, setDate] = useState<string | null>(appointment?.appointment_date ?? null);
+  const [typeChoice, setServiceType] = useState(appointment?.service_type ?? "");
+  const [notes, setNotes] = useState(appointment?.notes ?? "");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const create = useCreateAppointment();
   const update = useUpdateAppointment();
 
   const selected = useMemo(() => customers.find((c) => c.id === customer), [customers, customer]);
-  const bike = selected?.vehicles.find((v) => String(v.id) === vehicle);
-
-  useEffect(() => {
-    if (!open) return;
-    setCustomer(appointment?.customer_id ?? customerId ?? null);
-    setVehicle(String(appointment?.vehicle_id ?? vehicleId ?? ""));
-    setDate(appointment?.appointment_date ?? null);
-    setServiceType(appointment?.service_type ?? "");
-    setNotes(appointment?.notes ?? "");
-    setErrors({});
-  }, [open, appointment, customerId, vehicleId]);
-
   // Default to the customer's first bike and its due service.
-  useEffect(() => {
-    if (editing || !selected) return;
-    const current = selected.vehicles.find((v) => String(v.id) === vehicle) ?? selected.vehicles[0];
-    if (current && String(current.id) !== vehicle) setVehicle(String(current.id));
-    if (current && !serviceType) setServiceType(current.next_service_type);
-  }, [selected, vehicle, serviceType, editing]);
+  const bike = editing
+    ? undefined
+    : (selected?.vehicles.find((v) => String(v.id) === vehicleChoice) ?? selected?.vehicles[0]);
+  const vehicle = bike ? String(bike.id) : vehicleChoice;
+  const serviceType = typeChoice || bike?.next_service_type || "";
 
   async function submit() {
     const next: Record<string, string> = {};

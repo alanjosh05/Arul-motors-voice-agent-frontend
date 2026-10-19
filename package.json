@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "npx serve out",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint"
   },
   "dependencies": {
     "@pipecat-ai/client-js": "^1.4.0",
@@ -35,6 +36,8 @@
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.0.6",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

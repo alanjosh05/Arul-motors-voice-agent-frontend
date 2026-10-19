@@ -4,7 +4,6 @@ import {
   ArrowLeft,
   CalendarPlus,
   Ellipsis,
-  Gauge,
   Motorbike,
   NotebookPen,
   Pencil,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { DatePicker } from "@/components/date-picker";
 import { FormDialog } from "@/components/forms/form-dialog";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -27,14 +27,6 @@ export function LogCallDialog({
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
   const log = useLogCall();
-
-  useEffect(() => {
-    if (!open) return;
-    setOutcome("date_confirmed");
-    setCallback(null);
-    setNotes("");
-    setError("");
-  }, [open]);
 
   if (!customer) return null;
   return (

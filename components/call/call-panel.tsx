@@ -169,7 +169,7 @@ export function CallPanel({
         )}
         {phase === "ended" && (
           <p className="text-sm text-muted-foreground">
-            Call ended. The agent's outcome and any booking now show in the CRM.
+            Call ended. The agent’s outcome and any booking now show in the CRM.
           </p>
         )}
         {phase === "failed" && <p className="text-sm text-destructive">{error ?? "The call failed."}</p>}

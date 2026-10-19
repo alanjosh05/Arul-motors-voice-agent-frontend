@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useState, useSyncExternalStore } from "react";
 import { api } from "@/lib/api";
 import { clearSession, getStoredUser, getToken, saveSession } from "@/lib/session";
 import type { StaffUser } from "@/lib/types";
@@ -14,15 +14,16 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<StaffUser | null>(null);
-  const [ready, setReady] = useState(false);
+const noSubscribe = () => () => {};
 
-  useEffect(() => {
-    // Read the stored session after mount (localStorage isn't available during the static build).
-    setUser(getToken() ? getStoredUser() : null);
-    setReady(true);
-  }, []);
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  // False during the static build and hydration, true in the browser after
+  // (localStorage isn't available during the build).
+  const ready = useSyncExternalStore(noSubscribe, () => true, () => false);
+  const stored = useMemo(() => (ready && getToken() ? getStoredUser() : null), [ready]);
+  // Set by login/logout; until then the stored session applies.
+  const [session, setSession] = useState<{ user: StaffUser | null } | null>(null);
+  const user = session ? session.user : stored;
 
   const login = useCallback(async (username: string, password: string) => {
     const result = await api<{ token: string; user: StaffUser }>("/api/auth/login", {
@@ -30,12 +31,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       body: { username, password },
     });
     saveSession(result.token, result.user);
-    setUser(result.user);
+    setSession({ user: result.user });
   }, []);
 
   const logout = useCallback(() => {
     clearSession();
-    setUser(null);
+    setSession({ user: null });
     window.location.href = "/login/";
   }, []);
 

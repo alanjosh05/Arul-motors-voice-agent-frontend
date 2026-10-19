@@ -1,7 +1,7 @@
 "use client";
 
 import { addDays } from "date-fns";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { DatePicker } from "@/components/date-picker";
 import { FormDialog } from "@/components/forms/form-dialog";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -22,19 +22,17 @@ export function CompleteDialog({
   onOpenChange: (open: boolean) => void;
   appointment?: Appointment;
 }) {
-  const [nextDate, setNextDate] = useState<string | null>(null);
   const { data: types } = useServiceTypes();
   const serviceTypes = useServiceTypeNames();
-  const [nextType, setNextType] = useState("");
   const complete = useCompleteAppointment();
-
-  // Suggest the next scheduled type and its due date (from Service types).
-  useEffect(() => {
-    if (!open || !appointment) return;
-    const next = nextScheduledType(types, appointment.service_type);
-    setNextType(next?.name ?? appointment.service_type);
-    setNextDate(toISO(addDays(new Date(), next?.interval_days ?? DEFAULT_INTERVAL_DAYS)));
-  }, [open, appointment, types]);
+  // What staff picked; until then, suggest the next scheduled type and its due
+  // date (from Service types, which may still be loading).
+  const [typeChoice, setNextType] = useState<string | null>(null);
+  const [dateChoice, setNextDate] = useState<string | null | undefined>(undefined);
+  const suggested = nextScheduledType(types, appointment?.service_type ?? "");
+  const nextType = typeChoice ?? suggested?.name ?? appointment?.service_type ?? "";
+  const nextDate =
+    dateChoice !== undefined ? dateChoice : toISO(addDays(new Date(), suggested?.interval_days ?? DEFAULT_INTERVAL_DAYS));
 
   const chooseType = (name: string) => {
     setNextType(name);
