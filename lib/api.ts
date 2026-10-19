@@ -46,7 +46,9 @@ export async function api<T = unknown>(
     if (response.status === 401 && path !== "/api/auth/login") {
       clearSession();
       if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
-        window.location.href = "/login/";
+        // A full reload (not router.push) also drops cached CRM data; replace()
+        // keeps the expired page out of the Back history.
+        window.location.replace("/login/");
       }
     }
     const detail = data?.detail;

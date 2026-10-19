@@ -37,7 +37,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(() => {
     clearSession();
     setSession({ user: null });
-    window.location.href = "/login/";
+    // Full reload drops all cached CRM data; Back can't return to the CRM.
+    window.location.replace("/login/");
   }, []);
 
   const value = useMemo(() => ({ user, ready, login, logout }), [user, ready, login, logout]);

@@ -5,7 +5,10 @@ const nextConfig = {
   output: "export",
   trailingSlash: true,
   images: { unoptimized: true },
-  devIndicators: false
+  devIndicators: false,
+  // A stray ~/package-lock.json made Next guess the home folder as the root.
+  turbopack: { root: import.meta.dirname },
+  agentRules: false,
 };
 
 export default nextConfig;
