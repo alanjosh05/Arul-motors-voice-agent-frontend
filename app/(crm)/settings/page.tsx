@@ -1,0 +1,312 @@
+"use client";
+
+import { AudioLines, ExternalLink, KeyRound, Server, ShieldCheck, Trash2, UserPlus } from "lucide-react";
+import { useState } from "react";
+import { useAuth } from "@/components/auth-provider";
+import { ConfirmDialog } from "@/components/confirm-dialog";
+import { FormDialog } from "@/components/forms/form-dialog";
+import { PageHeader } from "@/components/page-header";
+import { RoleBadge, ToneBadge } from "@/components/status-badges";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { API_URL } from "@/lib/api";
+import { formatTimestamp, initials } from "@/lib/format";
+import { useChangePassword, useCreateStaff, useDeleteStaff, useStaff, useVoiceStatus } from "@/lib/queries";
+import type { StaffUser } from "@/lib/types";
+
+function PasswordCard() {
+  const change = useChangePassword();
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState("");
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Password</CardTitle>
+        <CardDescription>Use at least 8 characters.</CardDescription>
+      </CardHeader>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (next.length < 8) return setError("New password must be at least 8 characters.");
+          if (next !== confirm) return setError("Passwords don't match.");
+          setError("");
+          change.mutate(
+            { current_password: current, new_password: next },
+            { onSuccess: () => { setCurrent(""); setNext(""); setConfirm(""); } },
+          );
+        }}
+      >
+        <CardContent>
+          <FieldGroup className="max-w-md">
+            <Field>
+              <FieldLabel htmlFor="p-current">Current password</FieldLabel>
+              <Input id="p-current" type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} required />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="p-new">New password</FieldLabel>
+              <Input id="p-new" type="password" autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} required />
+            </Field>
+            <Field data-invalid={!!error}>
+              <FieldLabel htmlFor="p-confirm">Confirm new password</FieldLabel>
+              <Input id="p-confirm" type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required aria-invalid={!!error} />
+              <FieldError>{error}</FieldError>
+            </Field>
+          </FieldGroup>
+        </CardContent>
+        <CardFooter className="mt-6 border-t pt-6">
+          <Button type="submit" disabled={change.isPending}>
+            {change.isPending ? <Spinner /> : <KeyRound />} Update password
+          </Button>
+        </CardFooter>
+      </form>
+    </Card>
+  );
+}
+
+function AddMemberDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+  const create = useCreateStaff();
+  const [fullName, setFullName] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState("staff");
+  const [error, setError] = useState("");
+  return (
+    <FormDialog
+      open={open}
+      onOpenChange={(o) => {
+        onOpenChange(o);
+        if (!o) { setFullName(""); setUsername(""); setPassword(""); setRole("staff"); setError(""); }
+      }}
+      title="Add team member"
+      description="They sign in with this username and password."
+      submitLabel="Add member"
+      pending={create.isPending}
+      onSubmit={() => {
+        if (password.length < 8) return setError("Password must be at least 8 characters.");
+        setError("");
+        create.mutate({ full_name: fullName.trim() || undefined, username: username.trim(), password, role }, { onSuccess: () => onOpenChange(false) });
+      }}
+    >
+      <FieldGroup>
+        <Field>
+          <FieldLabel htmlFor="s-name">Full name</FieldLabel>
+          <Input id="s-name" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Ravi Kumar" />
+        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field>
+            <FieldLabel htmlFor="s-user">Username</FieldLabel>
+            <Input id="s-user" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} placeholder="ravi" required />
+          </Field>
+          <Field>
+            <FieldLabel>Role</FieldLabel>
+            <Select value={role} onValueChange={setRole}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="staff">Staff</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+        </div>
+        <Field data-invalid={!!error}>
+          <FieldLabel htmlFor="s-pass">Temporary password</FieldLabel>
+          <Input id="s-pass" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required aria-invalid={!!error} />
+          <FieldDescription>Ask them to change it from Settings after signing in.</FieldDescription>
+          <FieldError>{error}</FieldError>
+        </Field>
+      </FieldGroup>
+    </FormDialog>
+  );
+}
+
+function TeamCard({ me }: { me: StaffUser }) {
+  const { data, isLoading } = useStaff();
+  const remove = useDeleteStaff();
+  const [adding, setAdding] = useState(false);
+  const [removing, setRemoving] = useState<StaffUser | null>(null);
+  return (
+    <Card className="pb-0">
+      <CardHeader>
+        <CardTitle>Team</CardTitle>
+        <CardDescription>People who can sign in to the CRM. Admins can manage the team.</CardDescription>
+        <CardAction>
+          <Button onClick={() => setAdding(true)}>
+            <UserPlus /> Add member
+          </Button>
+        </CardAction>
+      </CardHeader>
+      <CardContent className="px-0">
+        <Table>
+          <TableHeader className="bg-muted/40">
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="pl-6">Member</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Added</TableHead>
+              <TableHead className="pr-6" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading
+              ? Array.from({ length: 2 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell colSpan={4} className="px-6"><Skeleton className="h-8" /></TableCell>
+                  </TableRow>
+                ))
+              : data?.map((u) => (
+                  <TableRow key={u.id}>
+                    <TableCell className="pl-6">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="size-8">
+                          <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">{initials(u.full_name || u.username)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">
+                            {u.full_name || u.username} {u.id === me.id && <span className="text-xs font-normal text-muted-foreground">(you)</span>}
+                          </p>
+                          <p className="text-xs text-muted-foreground">@{u.username}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell><RoleBadge role={u.role} /></TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{u.created_at ? formatTimestamp(u.created_at) : "—"}</TableCell>
+                    <TableCell className="pr-6 text-right">
+                      {u.id !== me.id && (
+                        <Button variant="ghost" size="icon-sm" onClick={() => setRemoving(u)} aria-label={`Remove ${u.username}`}>
+                          <Trash2 className="text-muted-foreground" />
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+      <AddMemberDialog open={adding} onOpenChange={setAdding} />
+      <ConfirmDialog
+        open={!!removing}
+        onOpenChange={(o) => !o && setRemoving(null)}
+        title={`Remove ${removing?.full_name || removing?.username}?`}
+        description="They will no longer be able to sign in."
+        confirmLabel="Remove"
+        destructive
+        onConfirm={() => removing && remove.mutate(removing.id)}
+      />
+    </Card>
+  );
+}
+
+function VoiceAgentCard() {
+  const { data, isLoading, refetch, isFetching } = useVoiceStatus();
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <AudioLines className="size-4 text-primary" /> Voice agent
+        </CardTitle>
+        <CardDescription>Gemini Live on Google Cloud, speaking Tanglish as Arul Motors Yamaha, Nazareth.</CardDescription>
+        <CardAction>
+          {isLoading ? <Skeleton className="h-5 w-16" /> : data?.online ? <ToneBadge tone="green">Online</ToneBadge> : <ToneBadge tone="red">Offline</ToneBadge>}
+        </CardAction>
+      </CardHeader>
+      <CardContent className="space-y-4 text-sm">
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {[
+            ["Calls from", "Follow-ups, Customers and each customer's profile (Call with agent)."],
+            ["What it does", "Confirms the service date, books it, can reschedule or cancel, and logs the outcome."],
+            ["Phone calls", "Calls run in the browser for now. Real phone calls switch on once telephony (Plivo) is set up."],
+            ["Privacy", "Only signed-in staff can start calls; the agent only discusses the customer on the call."],
+          ].map(([k, v]) => (
+            <li key={k} className="rounded-lg border bg-muted/30 p-3">
+              <p className="font-medium">{k}</p>
+              <p className="text-muted-foreground">{v}</p>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+      <CardFooter className="border-t pt-6">
+        <Button variant="outline" onClick={() => refetch()} disabled={isFetching}>
+          {isFetching && <Spinner />} Check again
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}
+
+export default function SettingsPage() {
+  const { user } = useAuth();
+  if (!user) return null;
+  const isAdmin = user.role === "admin";
+  return (
+    <>
+      <PageHeader title="Settings" description="Your account, the team and the voice agent." />
+      <Tabs defaultValue="account" className="gap-6">
+        <TabsList>
+          <TabsTrigger value="account">Account</TabsTrigger>
+          {isAdmin && <TabsTrigger value="team">Team</TabsTrigger>}
+          <TabsTrigger value="agent">Voice agent</TabsTrigger>
+          <TabsTrigger value="system">System</TabsTrigger>
+        </TabsList>
+        <TabsContent value="account" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Profile</CardTitle>
+              <CardDescription>Ask an admin to change your name or role.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex items-center gap-4">
+              <Avatar className="size-14">
+                <AvatarFallback className="bg-primary/10 text-lg font-semibold text-primary">{initials(user.full_name || user.username)}</AvatarFallback>
+              </Avatar>
+              <div className="space-y-1">
+                <p className="text-lg font-semibold">{user.full_name || user.username}</p>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  @{user.username} <RoleBadge role={user.role} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <PasswordCard />
+        </TabsContent>
+        {isAdmin && (
+          <TabsContent value="team">
+            <TeamCard me={user} />
+          </TabsContent>
+        )}
+        <TabsContent value="agent">
+          <VoiceAgentCard />
+        </TabsContent>
+        <TabsContent value="system">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Server className="size-4" /> System</CardTitle>
+              <CardDescription>Where this CRM gets its data.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 text-sm sm:grid-cols-2">
+              <div className="rounded-lg border p-3">
+                <p className="text-muted-foreground">API</p>
+                <a href={`${API_URL}/api/health`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-mono text-xs font-medium hover:underline">
+                  {API_URL} <ExternalLink className="size-3" />
+                </a>
+              </div>
+              <div className="rounded-lg border p-3">
+                <p className="text-muted-foreground">Security</p>
+                <p className="inline-flex items-center gap-1.5 font-medium"><ShieldCheck className="size-4 text-success" /> Staff sign-in · sessions expire after 12 hours</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </>
+  );
+}
