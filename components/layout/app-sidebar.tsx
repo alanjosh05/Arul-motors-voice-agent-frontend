@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronsUpDown, KeyRound, LogOut, Monitor, Moon, Sun } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -40,14 +41,18 @@ import { initials } from "@/lib/format";
 import { useStats, useVoiceStatus } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
-export function BrandMark({ className }: { className?: string }) {
+/** The Arul Motors Yamaha badge. `large` picks the sharper file for big sizes
+ * (login); size it with className (default 32px). */
+export function BrandMark({ className, large = false }: { className?: string; large?: boolean }) {
   return (
-    <span className={cn("grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm", className)}>
-      <svg viewBox="0 0 24 24" className="size-4.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <path d="M4 19 10.5 5h3L20 19" />
-        <path d="M7.2 13.5h9.6" />
-      </svg>
-    </span>
+    <Image
+      src={large ? "/brand/logo-256.webp" : "/brand/logo-96.webp"}
+      alt="Arul Motors Yamaha, Nazareth"
+      width={large ? 256 : 96}
+      height={large ? 256 : 96}
+      priority
+      className={cn("size-8 shrink-0 rounded-full shadow-sm ring-1 ring-black/10", className)}
+    />
   );
 }
 

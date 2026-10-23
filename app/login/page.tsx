@@ -53,7 +53,7 @@ export default function LoginPage() {
         <div className="pointer-events-none absolute -top-40 -right-40 size-[520px] rounded-full bg-white/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-48 -left-24 size-[460px] rounded-full bg-black/20 blur-3xl" />
         <div className="relative flex items-center gap-3">
-          <BrandMark className="size-10 bg-white text-[oklch(0.42_0.19_263)]" />
+          <BrandMark large className="size-14 shadow-lg ring-2 ring-white/25" />
           <div className="leading-tight">
             <p className="text-lg font-semibold tracking-tight">Arul Motors</p>
             <p className="text-sm text-white/70">Yamaha sub-dealer · Nazareth</p>
@@ -88,7 +88,7 @@ export default function LoginPage() {
       <main className="flex items-center justify-center p-6 sm:p-10">
         <div className="w-full max-w-sm space-y-8">
           <div className="flex items-center gap-3 lg:hidden">
-            <BrandMark />
+            <BrandMark large className="size-11" />
             <span className="font-semibold tracking-tight">Arul Motors CRM</span>
           </div>
           <div className="space-y-1.5">
