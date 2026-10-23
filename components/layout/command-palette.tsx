@@ -56,7 +56,7 @@ export default function CommandPalette({
             {customers.map((c) => (
               <CommandItem
                 key={c.id}
-                value={`${c.name} ${c.mobile_number} ${c.vehicles.map((v) => `${v.registration_number} ${v.model}`).join(" ")}`}
+                value={`${c.name} ${c.mobile_number} ${c.alternate_mobile ?? ""} ${c.vehicles.map((v) => `${v.registration_number} ${v.model}`).join(" ")}`}
                 onSelect={() => run(() => router.push(`/customers/view/?id=${c.id}`))}
               >
                 <CustomerAvatar name={c.name} className="size-6" />

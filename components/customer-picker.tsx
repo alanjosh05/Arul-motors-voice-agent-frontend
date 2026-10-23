@@ -48,7 +48,7 @@ export function CustomerPicker({
               {customers.map((c) => (
                 <CommandItem
                   key={c.id}
-                  value={`${c.name} ${c.mobile_number} ${c.vehicles.map((v) => `${v.registration_number} ${v.model}`).join(" ")}`}
+                  value={`${c.name} ${c.mobile_number} ${c.alternate_mobile ?? ""} ${c.vehicles.map((v) => `${v.registration_number} ${v.model}`).join(" ")}`}
                   onSelect={() => {
                     onChange(c.id);
                     setOpen(false);

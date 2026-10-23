@@ -70,6 +70,7 @@ export interface Customer {
   id: number;
   name: string;
   mobile_number: string;
+  alternate_mobile?: string | null; // second number; the agent calls mobile_number
   created_at: string;
   vehicles: Vehicle[];
   next_appointment?: Appointment | null;

@@ -139,6 +139,7 @@ function useCrmMutation<TVars>(
 export interface CustomerInput {
   name: string;
   mobile_number: string;
+  alternate_mobile?: string | null; // "" removes it
 }
 
 export const useCreateCustomer = () =>
@@ -164,6 +165,7 @@ export interface VehicleSaleInput {
   purchase_date?: string | null;
   odometer_km?: number | null;
   last_service_date?: string | null;
+  alternate_mobile?: string | null; // only used when the sale creates the customer
 }
 
 export const useAddVehicle = () =>

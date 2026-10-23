@@ -36,7 +36,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { daysFromToday, formatDate, formatDay, formatKm, formatMobile, formatTimestamp, parseTimestamp } from "@/lib/format";
-import { useCustomer, useDeleteCustomer, useDeleteVehicle, useServiceTypes } from "@/lib/queries";
+import { useCustomer, useDeleteCustomer, useDeleteVehicle, useServiceTypes, useUpdateCustomer } from "@/lib/queries";
 import type { CustomerDetail, Vehicle } from "@/lib/types";
 import { AppointmentDialog, CustomerDialog, LogCallDialog, VehicleDialog } from "@/components/forms/lazy";
 
@@ -138,6 +138,7 @@ function CustomerProfile() {
   const router = useRouter();
   const { data: customer, isLoading, error } = useCustomer(id);
   const remove = useDeleteCustomer();
+  const swap = useUpdateCustomer();
   const [dialog, setDialog] = useState<"edit" | "book" | "log" | "bike" | "delete" | null>(null);
 
   if (isLoading || !id) {
@@ -183,9 +184,31 @@ function CustomerProfile() {
             <div className="min-w-0 space-y-1">
               <h1 className="truncate text-2xl font-semibold tracking-tight">{customer.name}</h1>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                <a href={`tel:${customer.mobile_number}`} className="inline-flex items-center gap-1.5 hover:text-foreground">
+                <a href={`tel:${customer.mobile_number}`} className="inline-flex items-center gap-1.5 hover:text-foreground" title="Main number (the agent calls this)">
                   <Phone className="size-3.5" /> {formatMobile(customer.mobile_number)}
                 </a>
+                {customer.alternate_mobile && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <a href={`tel:${customer.alternate_mobile}`} className="hover:text-foreground">
+                      Alt {formatMobile(customer.alternate_mobile)}
+                    </a>
+                    <button
+                      type="button"
+                      disabled={swap.isPending}
+                      onClick={() =>
+                        swap.mutate({
+                          id: customer.id,
+                          mobile_number: customer.alternate_mobile!,
+                          alternate_mobile: customer.mobile_number,
+                        })
+                      }
+                      className="rounded px-1 text-xs font-medium text-primary hover:underline disabled:opacity-50"
+                      title="Make this the number the agent calls"
+                    >
+                      Make main
+                    </button>
+                  </span>
+                )}
                 <span className="inline-flex items-center gap-1.5">
                   <ShoppingBag className="size-3.5" /> Customer since {formatDate(customer.created_at, "MMM yyyy")}
                 </span>

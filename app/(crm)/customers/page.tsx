@@ -29,7 +29,10 @@ const columns: ColumnDef<Customer>[] = [
           <Link href={`/customers/view/?id=${row.original.id}`} className="font-medium hover:underline" onClick={(e) => e.stopPropagation()}>
             {row.original.name}
           </Link>
-          <p className="text-xs text-muted-foreground">{formatMobile(row.original.mobile_number)}</p>
+          <p className="text-xs text-muted-foreground">
+            {formatMobile(row.original.mobile_number)}
+            {row.original.alternate_mobile && <span title={formatMobile(row.original.alternate_mobile)}> · +1 number</span>}
+          </p>
         </div>
       </div>
     ),
@@ -121,7 +124,7 @@ export default function CustomersPage() {
         emptyTitle="No customers yet"
         emptyDescription="Add a customer with the bike they bought to start follow-ups."
         globalFilterFn={(c, q) =>
-          `${c.name} ${c.mobile_number} ${c.vehicles.map((v) => `${v.model} ${v.registration_number} ${v.registration_number.replace(/\s/g, "")}`).join(" ")}`
+          `${c.name} ${c.mobile_number} ${c.alternate_mobile ?? ""} ${c.vehicles.map((v) => `${v.model} ${v.registration_number} ${v.registration_number.replace(/\s/g, "")}`).join(" ")}`
             .toLowerCase()
             .includes(q.replace(/\s+/g, " "))
         }

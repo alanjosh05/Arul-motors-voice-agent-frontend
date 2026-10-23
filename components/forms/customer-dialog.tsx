@@ -28,6 +28,7 @@ export function CustomerDialog({
   // Callers mount the dialog only while it's open, so each opening starts fresh.
   const [name, setName] = useState(customer?.name ?? "");
   const [mobile, setMobile] = useState(customer?.mobile_number ?? "");
+  const [alternate, setAlternate] = useState(customer?.alternate_mobile ?? "");
   const [model, setModel] = useState("");
   const [registration, setRegistration] = useState("");
   const [purchase, setPurchase] = useState<string | null>(todayISO());
@@ -46,6 +47,9 @@ export function CustomerDialog({
     const next: Record<string, string> = {};
     if (!name.trim()) next.name = "Enter the customer's name.";
     if (digits(mobile).length < 10) next.mobile = "Enter a 10-digit mobile number.";
+    if (alternate.trim() && digits(alternate).length < 10) next.alternate = "Enter a 10-digit number, or leave it empty.";
+    else if (alternate.trim() && digits(alternate).slice(-10) === digits(mobile).slice(-10))
+      next.alternate = "Same as the main number.";
     if (withBike) {
       if (!model.trim()) next.model = "Enter the bike model.";
       if (!registration.trim()) next.registration = "Enter the registration number.";
@@ -55,7 +59,7 @@ export function CustomerDialog({
     if (Object.keys(next).length) return;
 
     if (editing) {
-      await update.mutateAsync({ id: customer.id, name: name.trim(), mobile_number: mobile });
+      await update.mutateAsync({ id: customer.id, name: name.trim(), mobile_number: mobile, alternate_mobile: alternate.trim() });
       onOpenChange(false);
       return;
     }
@@ -63,6 +67,7 @@ export function CustomerDialog({
       await addVehicle.mutateAsync({
         name: name.trim(),
         mobile_number: mobile,
+        alternate_mobile: alternate.trim() || null,
         model: model.trim(),
         registration_number: registration,
         purchase_date: purchase,
@@ -72,7 +77,7 @@ export function CustomerDialog({
       onOpenChange(false);
       return;
     }
-    const result = await create.mutateAsync({ name: name.trim(), mobile_number: mobile });
+    const result = await create.mutateAsync({ name: name.trim(), mobile_number: mobile, alternate_mobile: alternate.trim() || null });
     onOpenChange(false);
     if (result?.id) onCreated?.(Number(result.id));
   }
@@ -90,7 +95,7 @@ export function CustomerDialog({
     >
       <FieldGroup>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field data-invalid={!!errors.name}>
+          <Field data-invalid={!!errors.name} className="sm:col-span-2">
             <FieldLabel htmlFor="c-name">Full name</FieldLabel>
             <Input id="c-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Karthik Raja" aria-invalid={!!errors.name} autoFocus />
             <FieldError>{errors.name}</FieldError>
@@ -98,7 +103,14 @@ export function CustomerDialog({
           <Field data-invalid={!!errors.mobile}>
             <FieldLabel htmlFor="c-mobile">Mobile number</FieldLabel>
             <Input id="c-mobile" inputMode="tel" value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="98765 43210" aria-invalid={!!errors.mobile} />
+            <FieldDescription>The agent calls this number.</FieldDescription>
             <FieldError>{errors.mobile}</FieldError>
+          </Field>
+          <Field data-invalid={!!errors.alternate}>
+            <FieldLabel htmlFor="c-alt">Alternate number</FieldLabel>
+            <Input id="c-alt" inputMode="tel" value={alternate} onChange={(e) => setAlternate(e.target.value)} placeholder="Optional" aria-invalid={!!errors.alternate} />
+            <FieldDescription>A second number, e.g. a family member&rsquo;s.</FieldDescription>
+            <FieldError>{errors.alternate}</FieldError>
           </Field>
         </div>
         {!editing && (
