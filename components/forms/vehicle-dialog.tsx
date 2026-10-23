@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { DatePicker } from "@/components/date-picker";
 import { FormDialog } from "@/components/forms/form-dialog";
+import { ModelPicker } from "@/components/model-picker";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -73,7 +74,7 @@ export function VehicleDialog({
         <div className="grid gap-4 sm:grid-cols-2">
           <Field data-invalid={!!errors.model}>
             <FieldLabel htmlFor="v-model">Model</FieldLabel>
-            <Input id="v-model" value={model} onChange={(e) => setModel(e.target.value)} placeholder="Yamaha R15 V4" aria-invalid={!!errors.model} />
+            <ModelPicker id="v-model" value={model} onChange={setModel} invalid={!!errors.model} />
             <FieldError>{errors.model}</FieldError>
           </Field>
           <Field data-invalid={!!errors.registration}>

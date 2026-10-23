@@ -56,6 +56,23 @@ export const useCustomer = (id: number | null) =>
 
 export const useVehicles = () => useQuery({ queryKey: keys.vehicles, queryFn: () => api<Vehicle[]>("/api/vehicles") });
 
+/** Bike models already saved for customers, most sold first, with how many
+ * bikes of each (for the model picker). */
+export function useBikeModels(): { model: string; count: number }[] {
+  const { data } = useVehicles();
+  return useMemo(() => {
+    const counts = new Map<string, { model: string; count: number }>();
+    for (const v of data ?? []) {
+      const model = v.model.replace(/\s+/g, " ").trim();
+      const key = model.toLowerCase();
+      const entry = counts.get(key) ?? { model, count: 0 };
+      entry.count += 1;
+      counts.set(key, entry);
+    }
+    return [...counts.values()].sort((a, b) => b.count - a.count || a.model.localeCompare(b.model));
+  }, [data]);
+}
+
 // Keeps the current list on screen while another period (7/14/30 days) loads.
 export const useDueServices = (days: number) =>
   useQuery({
