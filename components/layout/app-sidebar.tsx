@@ -41,17 +41,20 @@ import { initials } from "@/lib/format";
 import { useStats, useVoiceStatus } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
-/** The Arul Motors Yamaha badge. `large` picks the sharper file for big sizes
- * (login); size it with className (default 32px). */
-export function BrandMark({ className, large = false }: { className?: string; large?: boolean }) {
+/** The Arul Motors logo (vector, after the client's badge). `full` shows the
+ * whole badge with ARUL MOTORS / NAZARETH / YAMAHA, for large sizes (login);
+ * otherwise the compact AM mark that stays legible small. Size it with
+ * className (default 32px). */
+export function BrandMark({ className, full = false }: { className?: string; full?: boolean }) {
   return (
     <Image
-      src={large ? "/brand/logo-256.webp" : "/brand/logo-96.webp"}
+      src={full ? "/brand/logo-badge.svg" : "/brand/logo-mark.svg"}
       alt="Arul Motors Yamaha, Nazareth"
-      width={large ? 256 : 96}
-      height={large ? 256 : 96}
+      width={512}
+      height={512}
+      unoptimized
       priority
-      className={cn("size-8 shrink-0 rounded-full shadow-sm ring-1 ring-black/10", className)}
+      className={cn("size-8 shrink-0 rounded-full drop-shadow-sm", className)}
     />
   );
 }

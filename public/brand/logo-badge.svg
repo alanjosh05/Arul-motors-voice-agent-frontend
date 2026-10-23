@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Arul Motors Yamaha, Nazareth">
+  <!-- Full badge (login, large sizes), redrawn flat after the Arul Motors
+       Yamaha badge: silver/red ring, navy disc, interlocking AM with ARUL and
+       MOTORS, NAZARETH and YAMAHA. -->
+  <defs>
+    <linearGradient id="silver" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f8fafc"/>
+      <stop offset="0.5" stop-color="#94a3b8"/>
+      <stop offset="1" stop-color="#e2e8f0"/>
+    </linearGradient>
+    <radialGradient id="navy" cx="0.5" cy="0.32" r="0.75">
+      <stop offset="0" stop-color="#1d4ed8"/>
+      <stop offset="0.55" stop-color="#0f2a6b"/>
+      <stop offset="1" stop-color="#081534"/>
+    </radialGradient>
+    <linearGradient id="red" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f43f4a"/>
+      <stop offset="1" stop-color="#b91c1c"/>
+    </linearGradient>
+    <linearGradient id="rule" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#93c5fd" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#bfdbfe"/>
+      <stop offset="1" stop-color="#93c5fd" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <circle cx="256" cy="256" r="252" fill="url(#silver)"/>
+  <circle cx="256" cy="256" r="240" fill="#dc2626"/>
+  <circle cx="256" cy="256" r="228" fill="url(#silver)"/>
+  <circle cx="256" cy="256" r="220" fill="url(#navy)"/>
+
+  <g stroke="#f1f5f9" stroke-width="6" stroke-linejoin="round" fill="url(#red)">
+    <path fill-rule="evenodd" d="M110 300 L178 112 L226 112 L290 300 L252 300 L240 264 L160 264 L148 300 Z M172 230 L230 230 L201 152 Z"/>
+    <path d="M250 300 V112 H292 L322 192 L352 112 H384 V300 H348 V188 L322 252 L296 188 V300 Z"/>
+  </g>
+  <g fill="#ffffff" font-family="Geist, 'Helvetica Neue', Arial, sans-serif" font-weight="800" text-anchor="middle">
+    <!-- ARUL under the A's crossbar, MOTORS down the M's right stem -->
+    <text x="200" y="294" font-size="25" letter-spacing="1">ARUL</text>
+    <g font-size="23">
+      <text x="366" y="146">M</text>
+      <text x="366" y="173">O</text>
+      <text x="366" y="200">T</text>
+      <text x="366" y="227">O</text>
+      <text x="366" y="254">R</text>
+      <text x="366" y="281">S</text>
+    </g>
+  </g>
+
+  <rect x="96" y="318" width="320" height="2.5" fill="url(#rule)"/>
+  <text x="256" y="356" fill="#e2e8f0" font-family="Geist, 'Helvetica Neue', Arial, sans-serif" font-weight="700" font-size="30" letter-spacing="13" text-anchor="middle">NAZARETH</text>
+  <rect x="96" y="370" width="320" height="2.5" fill="url(#rule)"/>
+  <text x="256" y="430" fill="url(#red)" stroke="#f1f5f9" stroke-width="2.5" paint-order="stroke" font-family="Geist, 'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="60" letter-spacing="2" text-anchor="middle">YAMAHA</text>
+</svg>
