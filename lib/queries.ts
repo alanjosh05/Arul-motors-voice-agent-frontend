@@ -1,6 +1,7 @@
 "use client";
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { useLiveStatus } from "@/components/live-provider";
 import { api, errorMessage } from "./api";
@@ -100,8 +101,11 @@ export const useServiceTypes = () =>
 /** Active service type names in schedule order (built-in list until loaded). */
 export function useServiceTypeNames(): string[] {
   const { data } = useServiceTypes();
-  const names = data?.filter((t) => t.active).map((t) => t.name);
-  return names?.length ? names : SERVICE_TYPES;
+  // Same array until the types change (callers may use it in deps or as data).
+  return useMemo(() => {
+    const names = data?.filter((t) => t.active).map((t) => t.name);
+    return names?.length ? names : SERVICE_TYPES;
+  }, [data]);
 }
 
 /** The scheduled service that follows `current` (types with an interval, in
@@ -117,12 +121,16 @@ export function nextScheduledType(types: ServiceType[] | undefined, current: str
 /** Everything that shows CRM data; refreshed after any change. */
 export function useRefreshAll() {
   const qc = useQueryClient();
-  return () =>
-    Promise.all(
-      ["stats", "customers", "customer", "vehicles", "due", "appointments", "calls", "service-types"].map((key) =>
-        qc.invalidateQueries({ queryKey: [key] }),
+  // Stable, so callbacks and context values built on it don't change every render.
+  return useCallback(
+    () =>
+      Promise.all(
+        ["stats", "customers", "customer", "vehicles", "due", "appointments", "calls", "service-types"].map((key) =>
+          qc.invalidateQueries({ queryKey: [key] }),
+        ),
       ),
-    );
+    [qc],
+  );
 }
 
 function useCrmMutation<TVars>(

@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowRight, CalendarCheck, CircleGauge, PhoneOutgoing, Users } from "lucide-react";
+import { useMemo } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { CallButton } from "@/components/actions";
@@ -28,6 +29,8 @@ function greeting() {
   return hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 }
 
+const NO_POINTS: never[] = []; // stable empty chart data while loading
+
 function ChartSkeleton() {
   return <Skeleton className="h-[240px] w-full rounded-lg" />;
 }
@@ -37,7 +40,7 @@ export default function DashboardPage() {
   const { data, isLoading } = useStats();
   const { activeCalls } = useLive();
   const t = data?.totals;
-  const outcomes = (data?.call_outcomes_30d ?? []).filter((o) => o.count > 0);
+  const outcomes = useMemo(() => (data?.call_outcomes_30d ?? []).filter((o) => o.count > 0), [data]);
   const totalCalls30 = outcomes.reduce((sum, o) => sum + o.count, 0);
 
   return (
@@ -107,7 +110,7 @@ export default function DashboardPage() {
             {isLoading ? (
               <ChartSkeleton />
             ) : (
-              <BookingsChart data={data?.appointments_next_14_days ?? []} />
+              <BookingsChart data={data?.appointments_next_14_days ?? NO_POINTS} />
             )}
           </CardContent>
         </Card>
@@ -144,7 +147,7 @@ export default function DashboardPage() {
             {isLoading ? (
               <ChartSkeleton />
             ) : (
-              <CallsChart data={data?.calls_last_14_days ?? []} />
+              <CallsChart data={data?.calls_last_14_days ?? NO_POINTS} />
             )}
           </CardContent>
         </Card>

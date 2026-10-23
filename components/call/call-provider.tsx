@@ -2,7 +2,7 @@
 
 import type { PipecatClient } from "@pipecat-ai/client-js";
 import dynamic from "next/dynamic";
-import { createContext, useCallback, useContext, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { API_URL, authHeaders, errorMessage } from "@/lib/api";
 import { fetchVoiceConfig, useRefreshAll } from "@/lib/queries";
@@ -138,8 +138,11 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     setClient(null);
   }, []);
 
+  // Every row's "Call" button reads this; a new object each render re-rendered them all.
+  const value = useMemo(() => ({ target, startCall }), [target, startCall]);
+
   return (
-    <CallContext.Provider value={{ target, startCall }}>
+    <CallContext.Provider value={value}>
       {children}
       {target && client && (
         <CallSession
