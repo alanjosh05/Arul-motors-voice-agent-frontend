@@ -1,4 +1,5 @@
 // The signed-in staff member's token, kept in this browser.
+import { clearAllDrafts } from "./drafts";
 import type { StaffUser } from "./types";
 
 const TOKEN_KEY = "am-crm.token";
@@ -37,4 +38,5 @@ export function clearSession() {
   } catch {
     /* ignore */
   }
+  clearAllDrafts(); // unsaved forms can hold customer details
 }

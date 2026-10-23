@@ -4,6 +4,7 @@ import { useState } from "react";
 import { DatePicker } from "@/components/date-picker";
 import { FormDialog } from "@/components/forms/form-dialog";
 import { ModelPicker } from "@/components/model-picker";
+import { useAutosaveDraft, useFormDraft } from "@/lib/drafts";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -24,15 +25,19 @@ export function VehicleDialog({
   vehicle?: Vehicle;
 }) {
   const editing = !!vehicle;
-  // Callers mount the dialog only while it's open, so each opening starts fresh.
-  const [model, setModel] = useState(vehicle?.model ?? "");
-  const [registration, setRegistration] = useState(vehicle?.registration_number ?? "");
-  const [purchase, setPurchase] = useState<string | null>(vehicle?.purchase_date ?? todayISO());
-  const [lastService, setLastService] = useState<string | null>(vehicle?.last_service_date ?? null);
-  const [odometer, setOdometer] = useState(vehicle?.odometer_km != null ? String(vehicle.odometer_km) : "");
-  const [nextDate, setNextDate] = useState<string | null>(vehicle?.next_service_date ?? null);
+  // Mounted only while open: fields start from the record, or from what was
+  // typed before if the form was closed without saving.
+  const draftKey = editing ? `vehicle:${vehicle.id}` : `vehicle:new:${customer?.mobile_number ?? ""}`;
+  const draft = useFormDraft(draftKey);
+  const [model, setModel] = useState(draft.get("model", vehicle?.model ?? ""));
+  const [registration, setRegistration] = useState(draft.get("registration", vehicle?.registration_number ?? ""));
+  const [purchase, setPurchase] = useState<string | null>(draft.get("purchase", vehicle?.purchase_date ?? todayISO()));
+  const [lastService, setLastService] = useState<string | null>(draft.get("lastService", vehicle?.last_service_date ?? null));
+  const [odometer, setOdometer] = useState(draft.get("odometer", vehicle?.odometer_km != null ? String(vehicle.odometer_km) : ""));
+  const [nextDate, setNextDate] = useState<string | null>(draft.get("nextDate", vehicle?.next_service_date ?? null));
   const serviceTypes = useServiceTypeNames();
-  const [nextType, setNextType] = useState(vehicle?.next_service_type ?? serviceTypes[0]);
+  const [nextType, setNextType] = useState(draft.get("nextType", vehicle?.next_service_type ?? serviceTypes[0]));
+  useAutosaveDraft(draftKey, { model, registration, purchase, lastService, odometer, nextDate, nextType });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const add = useAddVehicle();
   const update = useUpdateVehicle();
@@ -56,6 +61,7 @@ export function VehicleDialog({
     };
     if (editing) await update.mutateAsync({ id: vehicle.id, ...fields });
     else await add.mutateAsync({ ...fields, name: customer!.name, mobile_number: customer!.mobile_number });
+    draft.clear();
     onOpenChange(false);
   }
 
@@ -69,6 +75,7 @@ export function VehicleDialog({
       pending={add.isPending || update.isPending}
       onSubmit={() => submit().catch(() => {})}
       wide
+      draft={draft}
     >
       <FieldGroup>
         <div className="grid gap-4 sm:grid-cols-2">

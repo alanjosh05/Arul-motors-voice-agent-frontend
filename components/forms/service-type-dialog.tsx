@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { FormDialog } from "@/components/forms/form-dialog";
+import { useAutosaveDraft, useFormDraft } from "@/lib/drafts";
 import { Field, FieldContent, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldTitle } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from "@/components/ui/input-group";
@@ -23,15 +24,19 @@ export function ServiceTypeDialog({
   serviceType?: ServiceType;
 }) {
   const editing = !!serviceType;
-  // Callers mount the dialog only while it's open, so each opening starts fresh.
-  const [name, setName] = useState(serviceType?.name ?? "");
-  const [description, setDescription] = useState(serviceType?.description ?? "");
-  const [isFree, setIsFree] = useState(serviceType?.is_free ?? false);
-  const [scheduled, setScheduled] = useState(serviceType ? serviceType.interval_days != null : true);
-  const [days, setDays] = useState(serviceType?.interval_days != null ? String(serviceType.interval_days) : "");
-  const [km, setKm] = useState(serviceType?.interval_km != null ? String(serviceType.interval_km) : "");
-  const [price, setPrice] = useState(serviceType?.price != null ? String(serviceType.price) : "");
-  const [active, setActive] = useState(serviceType?.active ?? true);
+  // Mounted only while open: fields start from the type, or from what was
+  // typed before if the form was closed without saving.
+  const draftKey = editing ? `service-type:${serviceType.id}` : "service-type:new";
+  const draft = useFormDraft(draftKey);
+  const [name, setName] = useState(draft.get("name", serviceType?.name ?? ""));
+  const [description, setDescription] = useState(draft.get("description", serviceType?.description ?? ""));
+  const [isFree, setIsFree] = useState(draft.get("isFree", serviceType?.is_free ?? false));
+  const [scheduled, setScheduled] = useState(draft.get("scheduled", serviceType ? serviceType.interval_days != null : true));
+  const [days, setDays] = useState(draft.get("days", serviceType?.interval_days != null ? String(serviceType.interval_days) : ""));
+  const [km, setKm] = useState(draft.get("km", serviceType?.interval_km != null ? String(serviceType.interval_km) : ""));
+  const [price, setPrice] = useState(draft.get("price", serviceType?.price != null ? String(serviceType.price) : ""));
+  const [active, setActive] = useState(draft.get("active", serviceType?.active ?? true));
+  useAutosaveDraft(draftKey, { name, description, isFree, scheduled, days, km, price, active });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const create = useCreateServiceType();
   const update = useUpdateServiceType();
@@ -55,6 +60,7 @@ export function ServiceTypeDialog({
     };
     if (editing) await update.mutateAsync({ id: serviceType.id, ...body });
     else await create.mutateAsync(body);
+    draft.clear();
     onOpenChange(false);
   }
 
@@ -62,6 +68,7 @@ export function ServiceTypeDialog({
     <FormDialog
       open={open}
       onOpenChange={onOpenChange}
+      draft={draft}
       title={editing ? `Edit ${serviceType.name}` : "Add service type"}
       description={
         editing && (serviceType.bikes_due || serviceType.bookings)

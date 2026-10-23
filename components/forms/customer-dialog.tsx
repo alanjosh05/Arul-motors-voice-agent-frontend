@@ -4,6 +4,7 @@ import { useState } from "react";
 import { DatePicker } from "@/components/date-picker";
 import { FormDialog } from "@/components/forms/form-dialog";
 import { ModelPicker } from "@/components/model-picker";
+import { useAutosaveDraft, useFormDraft } from "@/lib/drafts";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldSeparator } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -26,16 +27,20 @@ export function CustomerDialog({
   onCreated?: (id: number) => void;
 }) {
   const editing = !!customer;
-  // Callers mount the dialog only while it's open, so each opening starts fresh.
-  const [name, setName] = useState(customer?.name ?? "");
-  const [mobile, setMobile] = useState(customer?.mobile_number ?? "");
-  const [alternate, setAlternate] = useState(customer?.alternate_mobile ?? "");
-  const [model, setModel] = useState("");
-  const [registration, setRegistration] = useState("");
-  const [purchase, setPurchase] = useState<string | null>(todayISO());
-  const [nextDate, setNextDate] = useState<string | null>(null);
+  // Mounted only while open: fields start from the record, or from what was
+  // typed before if the form was closed without saving.
+  const draftKey = editing ? `customer:${customer.id}` : "customer:new";
+  const draft = useFormDraft(draftKey);
+  const [name, setName] = useState(draft.get("name", customer?.name ?? ""));
+  const [mobile, setMobile] = useState(draft.get("mobile", customer?.mobile_number ?? ""));
+  const [alternate, setAlternate] = useState(draft.get("alternate", customer?.alternate_mobile ?? ""));
+  const [model, setModel] = useState(draft.get("model", ""));
+  const [registration, setRegistration] = useState(draft.get("registration", ""));
+  const [purchase, setPurchase] = useState<string | null>(draft.get("purchase", todayISO()));
+  const [nextDate, setNextDate] = useState<string | null>(draft.get("nextDate", null));
   const serviceTypes = useServiceTypeNames();
-  const [nextType, setNextType] = useState(serviceTypes[0]);
+  const [nextType, setNextType] = useState(draft.get("nextType", serviceTypes[0]));
+  useAutosaveDraft(draftKey, { name, mobile, alternate, model, registration, purchase, nextDate, nextType });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const create = useCreateCustomer();
@@ -61,6 +66,7 @@ export function CustomerDialog({
 
     if (editing) {
       await update.mutateAsync({ id: customer.id, name: name.trim(), mobile_number: mobile, alternate_mobile: alternate.trim() });
+      draft.clear();
       onOpenChange(false);
       return;
     }
@@ -75,10 +81,12 @@ export function CustomerDialog({
         next_service_date: nextDate!,
         next_service_type: nextType,
       });
+      draft.clear();
       onOpenChange(false);
       return;
     }
     const result = await create.mutateAsync({ name: name.trim(), mobile_number: mobile, alternate_mobile: alternate.trim() || null });
+    draft.clear();
     onOpenChange(false);
     if (result?.id) onCreated?.(Number(result.id));
   }
@@ -93,6 +101,7 @@ export function CustomerDialog({
       pending={create.isPending || update.isPending || addVehicle.isPending}
       onSubmit={() => submit().catch(() => {})}
       wide={!editing}
+      draft={draft}
     >
       <FieldGroup>
         <div className="grid gap-4 sm:grid-cols-2">

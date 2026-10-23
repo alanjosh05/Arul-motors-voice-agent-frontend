@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { DatePicker } from "@/components/date-picker";
 import { FormDialog } from "@/components/forms/form-dialog";
+import { useAutosaveDraft, useFormDraft } from "@/lib/drafts";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,9 +23,12 @@ export function LogCallDialog({
   onOpenChange: (open: boolean) => void;
   customer?: { id: number; name: string; vehicleId?: number };
 }) {
-  const [outcome, setOutcome] = useState<CallOutcome>("date_confirmed");
-  const [callback, setCallback] = useState<string | null>(null);
-  const [notes, setNotes] = useState("");
+  const draftKey = `log-call:${customer?.id ?? ""}`;
+  const draft = useFormDraft(draftKey);
+  const [outcome, setOutcome] = useState<CallOutcome>(draft.get("outcome", "date_confirmed"));
+  const [callback, setCallback] = useState<string | null>(draft.get("callback", null));
+  const [notes, setNotes] = useState(draft.get("notes", ""));
+  useAutosaveDraft(draftKey, { outcome, callback, notes });
   const [error, setError] = useState("");
   const log = useLogCall();
 
@@ -33,6 +37,7 @@ export function LogCallDialog({
     <FormDialog
       open={open}
       onOpenChange={onOpenChange}
+      draft={draft}
       title="Log a call"
       description={`Record the outcome of your call with ${customer.name}.`}
       submitLabel="Save outcome"
@@ -47,7 +52,10 @@ export function LogCallDialog({
             callback_date: outcome === "callback_requested" ? callback : null,
             notes: notes.trim() || null,
           })
-          .then(() => onOpenChange(false))
+          .then(() => {
+            draft.clear();
+            onOpenChange(false);
+          })
           .catch(() => {});
       }}
     >

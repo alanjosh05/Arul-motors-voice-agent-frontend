@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { CustomerPicker } from "@/components/customer-picker";
 import { DatePicker } from "@/components/date-picker";
 import { FormDialog } from "@/components/forms/form-dialog";
+import { useAutosaveDraft, useFormDraft } from "@/lib/drafts";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,12 +32,16 @@ export function AppointmentDialog({
   const editing = !!appointment;
   const { data: customers = [] } = useCustomers();
   const serviceTypes = useServiceTypeNames();
-  // Callers mount the dialog only while it's open, so each opening starts fresh.
-  const [customer, setCustomer] = useState<number | null>(appointment?.customer_id ?? customerId ?? null);
-  const [vehicleChoice, setVehicle] = useState(String(appointment?.vehicle_id ?? vehicleId ?? ""));
-  const [date, setDate] = useState<string | null>(appointment?.appointment_date ?? null);
-  const [typeChoice, setServiceType] = useState(appointment?.service_type ?? "");
-  const [notes, setNotes] = useState(appointment?.notes ?? "");
+  // Mounted only while open: fields start from the booking, or from what was
+  // typed before if the form was closed without saving.
+  const draftKey = editing ? `appointment:${appointment.id}` : `appointment:new:${customerId ?? ""}:${vehicleId ?? ""}`;
+  const draft = useFormDraft(draftKey);
+  const [customer, setCustomer] = useState<number | null>(draft.get("customer", appointment?.customer_id ?? customerId ?? null));
+  const [vehicleChoice, setVehicle] = useState(draft.get("vehicle", String(appointment?.vehicle_id ?? vehicleId ?? "")));
+  const [date, setDate] = useState<string | null>(draft.get("date", appointment?.appointment_date ?? null));
+  const [typeChoice, setServiceType] = useState(draft.get("serviceType", appointment?.service_type ?? ""));
+  const [notes, setNotes] = useState(draft.get("notes", appointment?.notes ?? ""));
+  useAutosaveDraft(draftKey, { customer, vehicle: vehicleChoice, date, serviceType: typeChoice, notes });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const create = useCreateAppointment();
   const update = useUpdateAppointment();
@@ -67,6 +72,7 @@ export function AppointmentDialog({
         notes: notes.trim() || null,
       });
     }
+    draft.clear();
     onOpenChange(false);
   }
 
@@ -75,6 +81,7 @@ export function AppointmentDialog({
     <FormDialog
       open={open}
       onOpenChange={onOpenChange}
+      draft={draft}
       title={editing ? `Reschedule ${appointment.id}` : "Book a service"}
       description={
         editing

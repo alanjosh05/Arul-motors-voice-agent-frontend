@@ -4,6 +4,7 @@ import { addDays } from "date-fns";
 import { useState } from "react";
 import { DatePicker } from "@/components/date-picker";
 import { FormDialog } from "@/components/forms/form-dialog";
+import { useAutosaveDraft, useFormDraft } from "@/lib/drafts";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { todayISO, toISO } from "@/lib/format";
@@ -27,8 +28,11 @@ export function CompleteDialog({
   const complete = useCompleteAppointment();
   // What staff picked; until then, suggest the next scheduled type and its due
   // date (from Service types, which may still be loading).
-  const [typeChoice, setNextType] = useState<string | null>(null);
-  const [dateChoice, setNextDate] = useState<string | null | undefined>(undefined);
+  const draftKey = `complete:${appointment?.id ?? ""}`;
+  const draft = useFormDraft(draftKey);
+  const [typeChoice, setNextType] = useState<string | null>(draft.get("type", null));
+  const [dateChoice, setNextDate] = useState<string | null | undefined>(draft.get("date", undefined));
+  useAutosaveDraft(draftKey, { type: typeChoice, date: dateChoice });
   const suggested = nextScheduledType(types, appointment?.service_type ?? "");
   const nextType = typeChoice ?? suggested?.name ?? appointment?.service_type ?? "";
   const nextDate =
@@ -45,6 +49,7 @@ export function CompleteDialog({
     <FormDialog
       open={open}
       onOpenChange={onOpenChange}
+      draft={draft}
       title="Mark as serviced"
       description={`${appointment.customer_name ?? ""} · ${appointment.model ?? ""} · ${appointment.service_type}`}
       submitLabel="Mark serviced"
@@ -52,7 +57,10 @@ export function CompleteDialog({
       onSubmit={() =>
         complete
           .mutateAsync({ id: appointment.id, next_service_date: nextDate, next_service_type: nextType })
-          .then(() => onOpenChange(false))
+          .then(() => {
+            draft.clear();
+            onOpenChange(false);
+          })
           .catch(() => {})
       }
     >
