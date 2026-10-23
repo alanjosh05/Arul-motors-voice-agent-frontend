@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useLiveStatus } from "@/components/live-provider";
 import { api, errorMessage } from "./api";
@@ -55,8 +55,13 @@ export const useCustomer = (id: number | null) =>
 
 export const useVehicles = () => useQuery({ queryKey: keys.vehicles, queryFn: () => api<Vehicle[]>("/api/vehicles") });
 
+// Keeps the current list on screen while another period (7/14/30 days) loads.
 export const useDueServices = (days: number) =>
-  useQuery({ queryKey: keys.due(days), queryFn: () => api<DueService[]>("/api/due-services", { query: { days } }) });
+  useQuery({
+    queryKey: keys.due(days),
+    queryFn: () => api<DueService[]>("/api/due-services", { query: { days } }),
+    placeholderData: keepPreviousData,
+  });
 
 export const useAppointments = () =>
   useQuery({ queryKey: keys.appointments, queryFn: () => api<Appointment[]>("/api/appointments") });

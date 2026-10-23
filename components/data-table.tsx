@@ -21,6 +21,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
+// One shared empty list while data loads. A new `[]` on every render makes the
+// table rebuild its rows and reset its page, which re-renders, which passes a
+// new `[]` again: an endless render loop that froze the page (e.g. switching
+// 7 / 14 / 30 days on Follow-ups).
+const NO_ROWS: never[] = [];
+
 export function SortHeader<T>({ column, title, className }: { column: Column<T>; title: string; className?: string }) {
   const sorted = column.getIsSorted();
   return (
@@ -78,7 +84,7 @@ export function DataTable<T>({
   // skips this component, which is fine (the table memoizes its own row models).
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
-    data: data ?? [],
+    data: data ?? NO_ROWS,
     columns,
     state: { sorting, globalFilter: deferredFilter },
     onSortingChange: setSorting,
