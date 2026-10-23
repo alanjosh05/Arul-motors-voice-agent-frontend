@@ -35,7 +35,8 @@ export function FormDialog({
   onSubmit: () => void;
   children: React.ReactNode;
   wide?: boolean;
-  /** The form's saved draft: shows "restored" with a way to discard it. */
+  /** The form's saved draft: shows "restored" with a way to discard it, and
+   * Cancel discards it. (Each form clears it itself after a successful save.) */
   draft?: FormDraft;
 }) {
   return (
@@ -72,7 +73,16 @@ export function FormDialog({
           )}
           {children}
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                // Cancel means "throw this away"; ×, Escape and clicking outside
+                // keep the draft (those are the accidental closes).
+                draft?.clear();
+                onOpenChange(false);
+              }}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={pending}>
