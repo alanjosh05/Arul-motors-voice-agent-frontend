@@ -83,6 +83,7 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
     let closedByUs = false;
     let attempt = 0;
     let retry: ReturnType<typeof setTimeout> | null = null;
+    let connectedBefore = false;
     let ping: ReturnType<typeof setInterval> | null = null;
 
     const onMessage = (message: LiveMessage) => {
@@ -90,8 +91,10 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
         case "hello":
           setActiveCalls(message.data.active_calls);
           setNotifications(message.data.notifications);
-          // A reconnect may have missed changes: refresh everything once.
-          invalidate(["customers", "vehicles", "appointments", "calls", "due", "stats"]);
+          // A reconnect may have missed changes: refresh everything once. (Not on
+          // the first connect: the page has only just loaded its data.)
+          if (connectedBefore) invalidate(["customers", "vehicles", "appointments", "calls", "due", "stats"]);
+          connectedBefore = true;
           break;
         case "data.changed":
           invalidate(message.data.entities);

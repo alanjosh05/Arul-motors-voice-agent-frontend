@@ -15,6 +15,10 @@ export class ApiError extends Error {
 
 type Query = Record<string, string | number | undefined | null>;
 
+// A request that hangs (weak network, server restarting) fails after this
+// instead of leaving the page loading forever; React Query then retries once.
+const TIMEOUT_MS = 20_000;
+
 export function authHeaders(): Record<string, string> {
   const token = getToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -37,8 +41,12 @@ export async function api<T = unknown>(
         ...authHeaders(),
       },
       body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+      signal: AbortSignal.timeout(TIMEOUT_MS),
     });
-  } catch {
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "TimeoutError") {
+      throw new ApiError("The server is taking too long to respond. Try again.", 0);
+    }
     throw new ApiError("Can't reach the server. Check your connection.", 0);
   }
   const data = await response.json().catch(() => null);

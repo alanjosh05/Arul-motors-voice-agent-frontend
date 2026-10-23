@@ -5,10 +5,15 @@ import { cn } from "cn"
 import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui"
 import { CheckIcon, ChevronRightIcon } from "lucide-react"
 
+// Non-modal by default: menu items here open dialogs, and a modal menu that
+// hands over to a dialog can leave `pointer-events: none` on <body> (the dialog
+// saves and later "restores" the menu's value), which makes the page ignore
+// every click. Non-modal menus still close on outside click and Escape.
 function DropdownMenu({
+  modal = false,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) {
-  return <DropdownMenuPrimitive.Root data-slot="dropdown-menu" {...props} />
+  return <DropdownMenuPrimitive.Root data-slot="dropdown-menu" modal={modal} {...props} />
 }
 
 function DropdownMenuPortal({
