@@ -52,12 +52,9 @@ export default function LoginPage() {
         <div className="pointer-events-none absolute inset-0 opacity-[0.14] [background-image:radial-gradient(circle_at_1px_1px,currentColor_1px,transparent_0)] [background-size:22px_22px]" />
         <div className="pointer-events-none absolute -top-40 -right-40 size-[520px] rounded-full bg-white/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-48 -left-24 size-[460px] rounded-full bg-black/20 blur-3xl" />
-        <div className="relative flex items-center gap-3">
-          <BrandMark full className="size-16 drop-shadow-lg" />
-          <div className="leading-tight">
-            <p className="text-lg font-semibold tracking-tight">Arul Motors</p>
-            <p className="text-sm text-white/70">Yamaha sub-dealer · Nazareth</p>
-          </div>
+        <div className="relative">
+          {/* The full logo already reads ARUL MOTORS · NAZARETH · YAMAHA. */}
+          <BrandMark full className="h-28 w-auto drop-shadow-md" />
         </div>
         <div className="relative mt-auto max-w-md space-y-8">
           <div className="space-y-3">

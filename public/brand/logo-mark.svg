@@ -1,30 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Arul Motors">
-  <!-- Compact mark for small sizes (sidebar, favicon): ring + AM monogram,
-       after the Arul Motors Yamaha badge. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="80 72 360 360" role="img" aria-label="Arul Motors">
+  <!-- AM monogram only (no background), after the Arul Motors Yamaha badge.
+       The white outline separates the overlapping letters on any background. -->
   <defs>
-    <linearGradient id="silver" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#f8fafc"/>
-      <stop offset="0.5" stop-color="#94a3b8"/>
-      <stop offset="1" stop-color="#e2e8f0"/>
-    </linearGradient>
-    <radialGradient id="navy" cx="0.5" cy="0.35" r="0.75">
-      <stop offset="0" stop-color="#1d4ed8"/>
-      <stop offset="0.55" stop-color="#0f2a6b"/>
-      <stop offset="1" stop-color="#081534"/>
-    </radialGradient>
     <linearGradient id="red" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#f43f4a"/>
       <stop offset="1" stop-color="#b91c1c"/>
     </linearGradient>
   </defs>
-  <circle cx="256" cy="256" r="252" fill="url(#silver)"/>
-  <circle cx="256" cy="256" r="238" fill="#dc2626"/>
-  <circle cx="256" cy="256" r="224" fill="url(#silver)"/>
-  <circle cx="256" cy="256" r="214" fill="url(#navy)"/>
-  <g stroke="#f1f5f9" stroke-width="9" stroke-linejoin="round" fill="url(#red)">
-    <!-- A -->
+  <g stroke="#ffffff" stroke-width="9" stroke-linejoin="round" fill="url(#red)">
     <path fill-rule="evenodd" d="M96 368 L184 136 L240 136 L312 368 L264 368 L250 322 L162 322 L148 368 Z M176 280 L238 280 L208 190 Z"/>
-    <!-- M (overlaps the A's right leg, as in the badge) -->
     <path d="M262 368 V136 H314 L350 236 L386 136 H424 V368 H380 V230 L350 310 L320 230 V368 Z"/>
   </g>
 </svg>
