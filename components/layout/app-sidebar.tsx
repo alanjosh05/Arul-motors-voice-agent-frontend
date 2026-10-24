@@ -38,7 +38,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { initials } from "@/lib/format";
-import { useStats, useVoiceStatus } from "@/lib/queries";
+import { useStats, useVoiceEnabled, useVoiceStatus } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 /** The Arul Motors logo: the red AM monogram, no background (vector, after
@@ -60,7 +60,9 @@ export function BrandMark({ className, full = false }: { className?: string; ful
 
 function AgentStatus() {
   const { data, isLoading } = useVoiceStatus();
+  const voiceOn = useVoiceEnabled();
   const online = data?.online;
+  if (!voiceOn) return null; // switched off in Settings: nothing to show
   return (
     <div className="flex items-center gap-2 rounded-lg border bg-background/60 px-2.5 py-2 text-xs group-data-[collapsible=icon]:hidden">
       <span className="relative flex size-2">

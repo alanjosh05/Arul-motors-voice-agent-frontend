@@ -134,7 +134,12 @@ export interface VoiceConfig {
 }
 
 // ------------------------------------------------------------- live feed
-export type LiveEntity = "customers" | "vehicles" | "appointments" | "calls" | "due" | "stats" | "service_types";
+export type LiveEntity = "customers" | "vehicles" | "appointments" | "calls" | "due" | "stats" | "service_types" | "settings";
+
+/** Showroom-wide settings (admins change them in Settings). */
+export interface AppSettings {
+  voice_agent_enabled: boolean;
+}
 
 export interface NotificationData {
   kind: string;

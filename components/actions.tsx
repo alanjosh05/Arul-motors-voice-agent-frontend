@@ -26,13 +26,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useCancelAppointment, useDeleteCustomer } from "@/lib/queries";
+import { useCancelAppointment, useDeleteCustomer, useVoiceEnabled } from "@/lib/queries";
 import type { Appointment, Customer } from "@/lib/types";
 import { AppointmentDialog, CompleteDialog, CustomerDialog, LogCallDialog } from "@/components/forms/lazy";
 
 const stop = (e: React.SyntheticEvent) => e.stopPropagation();
 
-/** Primary "Call with agent" button. */
+/** Primary "Call with agent" button (hidden while the voice agent is switched off). */
 export function CallButton({
   customer,
   subtitle,
@@ -47,6 +47,8 @@ export function CallButton({
   iconOnly?: boolean;
 }) {
   const { startCall, target } = useCall();
+  const voiceOn = useVoiceEnabled();
+  if (!voiceOn) return null;
   const button = (
     <Button
       size={iconOnly ? "icon-sm" : size}
@@ -134,6 +136,7 @@ export function CustomerActions({ customer }: { customer: Customer }) {
   const remove = useDeleteCustomer();
   const router = useRouter();
   const { startCall, target } = useCall();
+  const voiceOn = useVoiceEnabled();
   return (
     <div onClick={stop} className="flex justify-end">
       <DropdownMenu>
@@ -143,12 +146,14 @@ export function CustomerActions({ customer }: { customer: Customer }) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-52">
-          <DropdownMenuItem
-            disabled={!!target}
-            onClick={() => startCall({ id: customer.id, name: customer.name, mobile_number: customer.mobile_number })}
-          >
-            <PhoneCall /> Call with agent
-          </DropdownMenuItem>
+          {voiceOn && (
+            <DropdownMenuItem
+              disabled={!!target}
+              onClick={() => startCall({ id: customer.id, name: customer.name, mobile_number: customer.mobile_number })}
+            >
+              <PhoneCall /> Call with agent
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem onClick={() => setDialog("book")}>
             <CalendarPlus /> Book service
           </DropdownMenuItem>

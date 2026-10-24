@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { formatDay, formatMobile } from "@/lib/format";
-import { useDueServices } from "@/lib/queries";
+import { useDueServices, useVoiceEnabled } from "@/lib/queries";
 import type { DueService } from "@/lib/types";
 import { AppointmentDialog, LogCallDialog } from "@/components/forms/lazy";
 
@@ -96,19 +96,26 @@ const columns: ColumnDef<DueService>[] = [
 export default function FollowUpsPage() {
   const [days, setDays] = useState("7");
   const { data, isLoading } = useDueServices(Number(days));
+  const voiceOn = useVoiceEnabled();
   return (
     <>
       <PageHeader
         title="Follow-ups"
-        description="Bikes whose service is due and not yet booked: the voice agent's call queue."
+        description={
+          voiceOn
+            ? "Bikes whose service is due and not yet booked: the voice agent's call queue."
+            : "Bikes whose service is due and not yet booked: customers to call."
+        }
       />
-      <Alert className="border-primary/20 bg-primary/5">
-        <AudioLines className="text-primary" />
-        <AlertTitle>Call with the AI agent</AlertTitle>
-        <AlertDescription>
-          The agent calls in Tanglish as Arul Motors Yamaha, Nazareth, confirms the date the customer will bring the bike in, books it and logs the outcome. Calls run in your browser until phone calling is enabled.
-        </AlertDescription>
-      </Alert>
+      {voiceOn && (
+        <Alert className="border-primary/20 bg-primary/5">
+          <AudioLines className="text-primary" />
+          <AlertTitle>Call with the AI agent</AlertTitle>
+          <AlertDescription>
+            The agent calls in Tanglish as Arul Motors Yamaha, Nazareth, confirms the date the customer will bring the bike in, books it and logs the outcome. Calls run in your browser until phone calling is enabled.
+          </AlertDescription>
+        </Alert>
+      )}
       <DataTable
         columns={columns}
         data={data}

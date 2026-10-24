@@ -7,6 +7,7 @@ import { useLiveStatus } from "@/components/live-provider";
 import { api, errorMessage } from "./api";
 import { SERVICE_TYPES } from "./format";
 import type {
+  AppSettings,
   Appointment,
   CallLog,
   Customer,
@@ -30,6 +31,7 @@ export const keys = {
   staff: ["staff"] as const,
   serviceTypes: ["service-types"] as const,
   voiceStatus: ["voice-status"] as const,
+  settings: ["settings"] as const,
 };
 
 // ---------------------------------------------------------------- queries
@@ -102,13 +104,39 @@ export function usePrefetchCustomer() {
 export const useStaff = (enabled = true) =>
   useQuery({ queryKey: keys.staff, queryFn: () => api<StaffUser[]>("/api/staff"), enabled });
 
-export const useVoiceStatus = () =>
-  useQuery({
+export const useSettings = () =>
+  useQuery({ queryKey: keys.settings, queryFn: () => api<AppSettings>("/api/settings"), staleTime: 300_000 });
+
+/** Whether the voice agent is switched on (Settings → Voice agent). False
+ * until known, so call buttons never flash in when it's off. */
+export function useVoiceEnabled(): boolean {
+  return useSettings().data?.voice_agent_enabled === true;
+}
+
+export const useVoiceStatus = () => {
+  const enabled = useVoiceEnabled();
+  return useQuery({
     queryKey: keys.voiceStatus,
-    queryFn: () => api<{ online: boolean }>("/api/voice/status"),
+    queryFn: () => api<{ online: boolean; enabled?: boolean }>("/api/voice/status"),
     refetchInterval: 30_000,
     retry: false,
+    enabled, // no health checks while it's switched off
   });
+};
+
+export function useSetVoiceEnabled() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (voice_agent_enabled: boolean) =>
+      api<AppSettings>("/api/settings", { method: "PATCH", body: { voice_agent_enabled } }),
+    onSuccess: (settings) => {
+      qc.setQueryData(keys.settings, settings);
+      qc.invalidateQueries({ queryKey: keys.voiceStatus });
+      toast.success(settings.voice_agent_enabled ? "Voice agent turned on" : "Voice agent turned off");
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  });
+}
 
 export const fetchVoiceConfig = () => api<VoiceConfig>("/api/voice/config");
 

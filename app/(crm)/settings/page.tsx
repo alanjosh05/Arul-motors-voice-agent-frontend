@@ -10,16 +10,25 @@ import { RoleBadge, ToneBadge } from "@/components/status-badges";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldContent, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldTitle } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
+import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { API_URL } from "@/lib/api";
 import { formatTimestamp, initials } from "@/lib/format";
-import { useChangePassword, useCreateStaff, useDeleteStaff, useStaff, useVoiceStatus } from "@/lib/queries";
+import {
+  useChangePassword,
+  useCreateStaff,
+  useDeleteStaff,
+  useSetVoiceEnabled,
+  useSettings,
+  useStaff,
+  useVoiceStatus,
+} from "@/lib/queries";
 import type { StaffUser } from "@/lib/types";
 
 function PasswordCard() {
@@ -207,8 +216,11 @@ function TeamCard({ me }: { me: StaffUser }) {
   );
 }
 
-function VoiceAgentCard() {
+function VoiceAgentCard({ isAdmin }: { isAdmin: boolean }) {
   const { data, isLoading, refetch, isFetching } = useVoiceStatus();
+  const settings = useSettings();
+  const setEnabled = useSetVoiceEnabled();
+  const enabled = settings.data?.voice_agent_enabled === true;
   return (
     <Card>
       <CardHeader>
@@ -217,10 +229,35 @@ function VoiceAgentCard() {
         </CardTitle>
         <CardDescription>Gemini Live on Google Cloud, speaking Tanglish as Arul Motors Yamaha, Nazareth.</CardDescription>
         <CardAction>
-          {isLoading ? <Skeleton className="h-5 w-16" /> : data?.online ? <ToneBadge tone="green">Online</ToneBadge> : <ToneBadge tone="red">Offline</ToneBadge>}
+          {settings.isLoading || (enabled && isLoading) ? (
+            <Skeleton className="h-5 w-16" />
+          ) : !enabled ? (
+            <ToneBadge tone="gray">Turned off</ToneBadge>
+          ) : data?.online ? (
+            <ToneBadge tone="green">Online</ToneBadge>
+          ) : (
+            <ToneBadge tone="red">Offline</ToneBadge>
+          )}
         </CardAction>
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
+        <Field orientation="horizontal" className="rounded-lg border p-3">
+          <FieldContent>
+            <FieldTitle>Voice agent connection</FieldTitle>
+            <FieldDescription>
+              {enabled
+                ? "On: staff can start calls with the agent."
+                : "Off: no calls can start (from the CRM or the voice page) and every call button is hidden for all staff."}
+              {!isAdmin && " Only an admin can change this."}
+            </FieldDescription>
+          </FieldContent>
+          <Switch
+            checked={enabled}
+            disabled={!isAdmin || settings.isLoading || setEnabled.isPending}
+            onCheckedChange={(on) => setEnabled.mutate(on)}
+            aria-label="Voice agent connection"
+          />
+        </Field>
         <ul className="grid gap-3 sm:grid-cols-2">
           {[
             ["Calls from", "Follow-ups, Customers and each customer's profile (Call with agent)."],
@@ -235,11 +272,13 @@ function VoiceAgentCard() {
           ))}
         </ul>
       </CardContent>
-      <CardFooter className="border-t pt-6">
-        <Button variant="outline" onClick={() => refetch()} disabled={isFetching}>
-          {isFetching && <Spinner />} Check again
-        </Button>
-      </CardFooter>
+      {enabled && (
+        <CardFooter className="border-t pt-6">
+          <Button variant="outline" onClick={() => refetch()} disabled={isFetching}>
+            {isFetching && <Spinner />} Check again
+          </Button>
+        </CardFooter>
+      )}
     </Card>
   );
 }
@@ -284,7 +323,7 @@ export default function SettingsPage() {
           </TabsContent>
         )}
         <TabsContent value="agent">
-          <VoiceAgentCard />
+          <VoiceAgentCard isAdmin={isAdmin} />
         </TabsContent>
         <TabsContent value="system">
           <Card>
