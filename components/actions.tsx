@@ -121,7 +121,7 @@ export function AppointmentActions({ appointment, showCustomerLink = true }: { a
         open={dialog === "cancel"}
         onOpenChange={(o) => !o && setDialog(null)}
         title={`Cancel booking ${appointment.id}?`}
-        description="The booking is kept in the history as cancelled. The bike will show up in follow-ups again."
+        description="The booking is deleted completely and won't appear in the customer's history. The bike shows up in follow-ups again."
         confirmLabel="Cancel booking"
         destructive
         onConfirm={() => cancel.mutate(appointment.id)}

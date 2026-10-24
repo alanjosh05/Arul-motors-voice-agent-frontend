@@ -69,7 +69,6 @@ const TABS = [
   { value: "today", label: "Today" },
   { value: "missed", label: "Missed" },
   { value: "completed", label: "Completed" },
-  { value: "cancelled", label: "Cancelled" },
   { value: "all", label: "All" },
 ] as const;
 
@@ -86,7 +85,6 @@ export default function AppointmentsPage() {
       today: rows.filter((a) => a.state === "upcoming" && a.appointment_date === today),
       missed: rows.filter((a) => a.state === "missed"),
       completed: rows.filter((a) => a.state === "completed"),
-      cancelled: rows.filter((a) => a.state === "cancelled"),
       all: rows,
     };
     return pick;
