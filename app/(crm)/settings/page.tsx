@@ -1,6 +1,18 @@
 "use client";
 
-import { AudioLines, ExternalLink, KeyRound, Server, ShieldCheck, Trash2, UserPlus } from "lucide-react";
+import {
+  AudioLines,
+  CloudUpload,
+  DatabaseBackup,
+  ExternalLink,
+  FileSpreadsheet,
+  KeyRound,
+  Server,
+  ShieldCheck,
+  Trash2,
+  UserPlus,
+} from "lucide-react";
+import { toast } from "sonner";
 import { useState } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -18,7 +30,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { API_URL } from "@/lib/api";
+import { API_URL, downloadFile, errorMessage } from "@/lib/api";
 import { formatTimestamp, initials } from "@/lib/format";
 import {
   useChangePassword,
@@ -283,6 +295,88 @@ function VoiceAgentCard({ isAdmin }: { isAdmin: boolean }) {
   );
 }
 
+function DownloadButton({
+  path,
+  fallbackName,
+  icon: Icon,
+  children,
+  variant = "outline",
+}: {
+  path: string;
+  fallbackName: string;
+  icon: React.ComponentType;
+  children: React.ReactNode;
+  variant?: "default" | "outline";
+}) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <Button
+      variant={variant}
+      disabled={busy}
+      onClick={() => {
+        setBusy(true);
+        downloadFile(path, fallbackName)
+          .then(() => toast.success("Download started"))
+          .catch((e) => toast.error(errorMessage(e)))
+          .finally(() => setBusy(false));
+      }}
+    >
+      {busy ? <Spinner /> : <Icon />} {children}
+    </Button>
+  );
+}
+
+/** Admins: Excel export to work on, a copy of the database, and the nightly backups. */
+function DataCard() {
+  return (
+    <div className="grid gap-6 lg:grid-cols-2">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileSpreadsheet className="size-4 text-primary" /> Export to Excel
+          </CardTitle>
+          <CardDescription>
+            Everything in the CRM as an Excel workbook to filter, sort and work on: Customers &amp; Bikes, Bookings, Calls and Service Types.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground">
+          Changes made in Excel don&rsquo;t come back into the CRM; edit records here.
+        </CardContent>
+        <CardFooter className="border-t pt-6">
+          <DownloadButton path="/api/admin/export.xlsx" fallbackName="arul-motors-crm.xlsx" icon={FileSpreadsheet} variant="default">
+            Download Excel
+          </DownloadButton>
+        </CardFooter>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DatabaseBackup className="size-4 text-primary" /> Database backup
+          </CardTitle>
+          <CardDescription>A complete copy of the CRM database, e.g. before a big change or to keep a monthly copy.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <div className="flex gap-2 rounded-lg border bg-muted/30 p-3">
+            <CloudUpload className="mt-0.5 size-4 shrink-0 text-success" />
+            <p>
+              <span className="font-medium">Automatic:</span> a copy goes to Google Cloud Storage (Delhi) every night at 8:50 PM
+              and is kept for 90 days, plus a daily disk snapshot kept for 14 days.
+            </p>
+          </div>
+          <p className="text-muted-foreground">
+            The file holds every customer&rsquo;s name and phone number. Keep it private and don&rsquo;t share it in groups.
+          </p>
+        </CardContent>
+        <CardFooter className="border-t pt-6">
+          <DownloadButton path="/api/admin/backup.db" fallbackName="arul-motors-backup.db" icon={DatabaseBackup}>
+            Download backup
+          </DownloadButton>
+        </CardFooter>
+      </Card>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const { user } = useAuth();
   if (!user) return null;
@@ -295,6 +389,7 @@ export default function SettingsPage() {
           <TabsTrigger value="account">Account</TabsTrigger>
           {isAdmin && <TabsTrigger value="team">Team</TabsTrigger>}
           <TabsTrigger value="agent">Voice agent</TabsTrigger>
+          {isAdmin && <TabsTrigger value="data">Data &amp; backups</TabsTrigger>}
           <TabsTrigger value="system">System</TabsTrigger>
         </TabsList>
         <TabsContent value="account" className="space-y-6">
@@ -325,6 +420,11 @@ export default function SettingsPage() {
         <TabsContent value="agent">
           <VoiceAgentCard isAdmin={isAdmin} />
         </TabsContent>
+        {isAdmin && (
+          <TabsContent value="data">
+            <DataCard />
+          </TabsContent>
+        )}
         <TabsContent value="system">
           <Card>
             <CardHeader>

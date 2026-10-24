@@ -66,6 +66,28 @@ export async function api<T = unknown>(
   return data as T;
 }
 
+/** Download a file from the API (signed in), saving it under the server's
+ * file name. Used for the Excel export and database backup. */
+export async function downloadFile(path: string, fallbackName: string): Promise<void> {
+  let response: Response;
+  try {
+    response = await fetch(API_URL + path, { headers: authHeaders(), signal: AbortSignal.timeout(120_000) });
+  } catch {
+    throw new ApiError("Can't reach the server. Check your connection.", 0);
+  }
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new ApiError(typeof data?.detail === "string" ? data.detail : `Download failed (${response.status}).`, response.status);
+  }
+  const name = /filename="([^"]+)"/.exec(response.headers.get("content-disposition") ?? "")?.[1] ?? fallbackName;
+  const url = URL.createObjectURL(await response.blob());
+  const link = Object.assign(document.createElement("a"), { href: url, download: name });
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
 export function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Something went wrong.";
 }
