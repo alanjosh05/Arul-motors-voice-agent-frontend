@@ -34,10 +34,12 @@ export function VehicleDialog({
   const [purchase, setPurchase] = useState<string | null>(draft.get("purchase", vehicle?.purchase_date ?? todayISO()));
   const [lastService, setLastService] = useState<string | null>(draft.get("lastService", vehicle?.last_service_date ?? null));
   const [odometer, setOdometer] = useState(draft.get("odometer", vehicle?.odometer_km != null ? String(vehicle.odometer_km) : ""));
+  const [frame, setFrame] = useState(draft.get("frame", vehicle?.frame_number ?? ""));
+  const [engine, setEngine] = useState(draft.get("engine", vehicle?.engine_number ?? ""));
   const [nextDate, setNextDate] = useState<string | null>(draft.get("nextDate", vehicle?.next_service_date ?? null));
   const serviceTypes = useServiceTypeNames();
   const [nextType, setNextType] = useState(draft.get("nextType", vehicle?.next_service_type ?? serviceTypes[0]));
-  useAutosaveDraft(draftKey, { model, registration, purchase, lastService, odometer, nextDate, nextType });
+  useAutosaveDraft(draftKey, { model, registration, purchase, lastService, odometer, frame, engine, nextDate, nextType });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const add = useAddVehicle();
   const update = useUpdateVehicle();
@@ -59,7 +61,14 @@ export function VehicleDialog({
       next_service_date: nextDate!,
       next_service_type: nextType,
     };
-    if (editing) await update.mutateAsync({ id: vehicle.id, ...fields });
+    if (editing)
+      await update.mutateAsync({
+        id: vehicle.id,
+        ...fields,
+        // "" leaves a number as it is (the API ignores empty values).
+        ...(frame.trim() && { frame_number: frame.trim().toUpperCase() }),
+        ...(engine.trim() && { engine_number: engine.trim().toUpperCase() }),
+      });
     else await add.mutateAsync({ ...fields, name: customer!.name, mobile_number: customer!.mobile_number });
     draft.clear();
     onOpenChange(false);
@@ -102,6 +111,18 @@ export function VehicleDialog({
             <Input id="v-km" inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="1200" aria-invalid={!!errors.odometer} />
             <FieldError>{errors.odometer}</FieldError>
           </Field>
+          {editing && (
+            <>
+              <Field>
+                <FieldLabel htmlFor="v-frame">Frame no.</FieldLabel>
+                <Input id="v-frame" value={frame} onChange={(e) => setFrame(e.target.value.toUpperCase())} placeholder="Chassis number" className="font-mono uppercase" />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="v-engine">Engine no.</FieldLabel>
+                <Input id="v-engine" value={engine} onChange={(e) => setEngine(e.target.value.toUpperCase())} placeholder="Optional" className="font-mono uppercase" />
+              </Field>
+            </>
+          )}
           <Field data-invalid={!!errors.nextDate}>
             <FieldLabel>Next service due</FieldLabel>
             <DatePicker value={nextDate} onChange={setNextDate} invalid={!!errors.nextDate} />

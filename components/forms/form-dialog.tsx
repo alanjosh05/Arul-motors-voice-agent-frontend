@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 import type { FormDraft } from "@/lib/drafts";
+import { cn } from "@/lib/utils";
 
 /** Shared dialog chrome for every CRM form. */
 export function FormDialog({
@@ -24,6 +25,7 @@ export function FormDialog({
   onSubmit,
   children,
   wide,
+  xl,
   draft,
 }: {
   open: boolean;
@@ -35,13 +37,16 @@ export function FormDialog({
   onSubmit: () => void;
   children: React.ReactNode;
   wide?: boolean;
+  /** Extra wide, for long forms (e.g. closing a service with its job card). */
+  xl?: boolean;
   /** The form's saved draft: shows "restored" with a way to discard it, and
    * Cancel discards it. (Each form clears it itself after a successful save.) */
   draft?: FormDraft;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={wide ? "sm:max-w-2xl" : "sm:max-w-lg"}>
+      {/* Long forms scroll inside the dialog instead of running off the screen. */}
+      <DialogContent className={cn("max-h-[92svh] overflow-y-auto", xl ? "sm:max-w-4xl" : wide ? "sm:max-w-2xl" : "sm:max-w-lg")}>
         <form
           onSubmit={(e) => {
             e.preventDefault();

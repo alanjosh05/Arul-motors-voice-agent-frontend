@@ -100,6 +100,12 @@ function BikeCard({ vehicle, customer }: { vehicle: Vehicle; customer: CustomerD
           <Detail label="Odometer">{formatKm(vehicle.odometer_km)}</Detail>
           <Detail label="Last service">{vehicle.last_service_date ? formatDate(vehicle.last_service_date, "d MMM yy") : "Never"}</Detail>
         </div>
+        {(vehicle.frame_number || vehicle.engine_number) && (
+          <div className="grid grid-cols-2 gap-3">
+            {vehicle.frame_number && <Detail label="Frame no."><span className="font-mono text-xs">{vehicle.frame_number}</span></Detail>}
+            {vehicle.engine_number && <Detail label="Engine no."><span className="font-mono text-xs">{vehicle.engine_number}</span></Detail>}
+          </div>
+        )}
         <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
           <div className="flex items-center justify-between gap-2">
             <div>

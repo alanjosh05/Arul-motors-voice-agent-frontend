@@ -32,6 +32,8 @@ export interface Vehicle {
   odometer_km: number | null;
   next_service_date: string;
   next_service_type: string;
+  frame_number?: string | null;
+  engine_number?: string | null;
   customer_name?: string;
   mobile_number?: string;
 }
@@ -148,17 +150,55 @@ export type LiveEntity =
 /** One entry in a bike's service history: a maintenance record written when a
  * service was closed ("record"), or an older completed booking without one,
  * e.g. from the client's import ("booking"). */
+export interface JobCardPart {
+  part_no?: string | null;
+  name: string;
+  qty: number;
+  amount: number; // ₹ per unit
+  warranty?: boolean; // under warranty: not charged
+}
+
+export interface JobCardLabour {
+  description: string;
+  amount: number;
+}
+
+/** Customer feedback from the job card: a rating, and each check true
+ * (Yes / OK) or false (No / Not OK); missing = not asked. */
+export interface JobCardFeedback {
+  rating?: string;
+  delivery_on_time?: boolean;
+  washing_quality?: boolean;
+  staff_behaviour?: boolean;
+  fairness_of_charges?: boolean;
+  repairing_quality?: boolean;
+}
+
 export interface ServiceHistoryItem {
   kind: "record" | "booking";
-  id?: number; // record id (for the report PDF)
+  id?: number; // record id (for the job card PDF)
   appointment_id: string | null;
-  service_date: string;
+  service_date: string; // delivered on
   service_type: string;
+  job_card_no?: string | null;
+  job_type?: string | null;
+  received_date?: string | null;
   odometer_km?: number | null;
+  frame_number?: string | null;
+  engine_number?: string | null;
+  customer_requests?: string | null;
+  jobs_done?: string[];
   work_done?: string | null;
-  parts?: string | null;
-  amount?: number | null;
+  parts?: JobCardPart[];
+  labour?: JobCardLabour[];
+  parts_total?: number | null;
+  labour_total?: number | null;
+  amount?: number | null; // grand total ₹
+  delivery_checks?: string[];
+  feedback?: JobCardFeedback;
   technician?: string | null;
+  mechanic?: string | null;
+  supervisor?: string | null;
   remarks?: string | null;
   next_service_date?: string | null;
   next_service_type?: string | null;
