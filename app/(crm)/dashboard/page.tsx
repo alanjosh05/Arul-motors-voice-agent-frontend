@@ -9,6 +9,7 @@ import { useAuth } from "@/components/auth-provider";
 import { CustomerAvatar } from "@/components/customer-avatar";
 import { useLive } from "@/components/live-provider";
 import { ActiveCallRow } from "@/components/live/live-indicators";
+import { BikesByModel } from "@/components/dashboard/bikes-by-model";
 import { StatCard } from "@/components/stat-card";
 import { DueBadge, OutcomeBadge } from "@/components/status-badges";
 import { Button } from "@/components/ui/button";
@@ -46,7 +47,7 @@ export default function DashboardPage() {
   return (
     <>
       <div className="flex flex-col gap-1">
-        <p className="text-sm text-muted-foreground">{formatDate(data?.today ?? new Date().toISOString(), "EEEE, d MMMM yyyy")}</p>
+        <p className="text-sm text-muted-foreground">{formatDay(data?.today ?? new Date().toISOString())}</p>
         <h1 className="text-2xl font-semibold tracking-tight">
           {greeting()}, {user?.full_name?.split(" ")[0] || user?.username}
         </h1>
@@ -155,7 +156,7 @@ export default function DashboardPage() {
         <Card className="lg:col-span-3">
           <CardHeader>
             <CardTitle>Today at the workshop</CardTitle>
-            <CardDescription>{formatDate(data?.today ?? new Date().toISOString(), "EEEE, d MMM")}</CardDescription>
+            <CardDescription>{formatDay(data?.today ?? new Date().toISOString())}</CardDescription>
             <CardAction>
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/appointments/">
@@ -283,6 +284,8 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <BikesByModel />
     </>
   );
 }
