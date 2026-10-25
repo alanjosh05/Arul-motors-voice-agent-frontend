@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatDate, formatDay, timeAgo } from "@/lib/format";
+import { formatDay, timeAgo } from "@/lib/format";
 import { useStats } from "@/lib/queries";
 
 // Charts load in their own chunk after the KPIs render.

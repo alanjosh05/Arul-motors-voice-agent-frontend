@@ -316,7 +316,7 @@ function CustomerProfile() {
                 <TableBody>
                   {customer.appointments.map((a) => (
                     <TableRow key={a.id}>
-                      <TableCell className="tabular font-medium">{formatDate(a.appointment_date, "EEE, d MMM yyyy")}</TableCell>
+                      <TableCell className="tabular font-medium">{formatDay(a.appointment_date)}</TableCell>
                       <TableCell className="font-mono text-xs text-muted-foreground">{a.id}</TableCell>
                       <TableCell>
                         <span className="plate">{a.registration_number}</span>

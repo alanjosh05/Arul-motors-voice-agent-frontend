@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/page-header";
 import { AppointmentStateBadge } from "@/components/status-badges";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { formatDate, relativeDay, todayISO } from "@/lib/format";
+import { formatDay, relativeDay, todayISO } from "@/lib/format";
 import { useAppointments } from "@/lib/queries";
 import type { Appointment } from "@/lib/types";
 import { AppointmentDialog } from "@/components/forms/lazy";
@@ -22,7 +22,7 @@ const columns: ColumnDef<Appointment>[] = [
     header: ({ column }) => <SortHeader column={column} title="Date" />,
     cell: ({ row }) => (
       <div>
-        <p className="tabular font-medium">{formatDate(row.original.appointment_date, "EEE, d MMM")}</p>
+        <p className="tabular font-medium">{formatDay(row.original.appointment_date)}</p>
         <p className="text-xs text-muted-foreground">{relativeDay(row.original.appointment_date)}</p>
       </div>
     ),
