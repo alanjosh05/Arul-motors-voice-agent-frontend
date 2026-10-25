@@ -380,6 +380,24 @@ export const useCloseService = () =>
     { success: "Service closed and recorded" },
   );
 
+/** Admins: delete one call log entry (gone from the list at once). */
+export const useDeleteCall = () =>
+  useCrmMutation((id: number) => api(`/api/calls/${id}`, { method: "DELETE" }), {
+    success: "Call deleted",
+    optimistic: (qc, id) => patchLists<CallLog>(qc, keys.calls, (rows) => rows.filter((c) => c.id !== id)),
+  });
+
+/** Admins: delete every call, or only those with one outcome. */
+export const useDeleteCalls = () =>
+  useCrmMutation(
+    (outcome: string | null) =>
+      api<{ message: string; deleted: number }>("/api/calls", { method: "DELETE", query: { outcome: outcome ?? undefined } }),
+    {
+      optimistic: (qc, outcome) =>
+        patchLists<CallLog>(qc, keys.calls, (rows) => (outcome ? rows.filter((c) => c.outcome !== outcome) : [])),
+    },
+  );
+
 export interface CallLogInput {
   customer_id: number;
   outcome: string;

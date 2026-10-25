@@ -1,18 +1,69 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { CalendarCheck, Headset, PhoneMissed, Repeat } from "lucide-react";
+import { CalendarCheck, Ellipsis, ExternalLink, Headset, PhoneMissed, Repeat, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useAuth } from "@/components/auth-provider";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { CustomerAvatar } from "@/components/customer-avatar";
 import { DataTable, SortHeader } from "@/components/data-table";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { OutcomeBadge } from "@/components/status-badges";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDay, formatTimestamp, OUTCOME_LABELS, timeAgo } from "@/lib/format";
-import { CALL_LOG_LIMIT, useCallCount, useCalls } from "@/lib/queries";
+import { CALL_LOG_LIMIT, useCallCount, useCalls, useDeleteCall, useDeleteCalls } from "@/lib/queries";
 import type { CallLog, CallOutcome } from "@/lib/types";
+
+/** ⋯ on a call (admins only): open the customer, delete the call. */
+function CallRowActions({ call }: { call: CallLog }) {
+  const { user } = useAuth();
+  const remove = useDeleteCall();
+  const [confirming, setConfirming] = useState(false);
+  if (user?.role !== "admin") return null;
+  return (
+    <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon-sm" aria-label="Call actions">
+            <Ellipsis />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem asChild>
+            <Link href={`/customers/view/?id=${call.customer_id}`}>
+              <ExternalLink /> Open customer
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem variant="destructive" onClick={() => setConfirming(true)}>
+            <Trash2 /> Delete call
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {confirming && (
+        <ConfirmDialog
+          open={confirming}
+          onOpenChange={setConfirming}
+          title="Delete this call?"
+          description={`The ${OUTCOME_LABELS[call.outcome].toLowerCase()} call with ${call.customer_name} on ${formatTimestamp(call.created_at)} is removed from the call log for everyone.`}
+          confirmLabel="Delete call"
+          destructive
+          onConfirm={() => remove.mutate(call.id)}
+        />
+      )}
+    </div>
+  );
+}
 
 const columns: ColumnDef<CallLog>[] = [
   {
@@ -61,6 +112,7 @@ const columns: ColumnDef<CallLog>[] = [
     header: "Notes",
     cell: ({ row }) => <span className="line-clamp-2 max-w-72 text-sm text-muted-foreground">{row.original.notes ?? "—"}</span>,
   },
+  { id: "actions", header: "", cell: ({ row }) => <CallRowActions call={row.original} /> },
 ];
 
 export default function CallsPage() {
@@ -70,6 +122,13 @@ export default function CallsPage() {
   const [outcome, setOutcome] = useState<CallOutcome | "all">("all");
   const rows = useMemo(() => (outcome === "all" ? data : data?.filter((c) => c.outcome === outcome)), [data, outcome]);
   const count = (o: CallOutcome) => data?.filter((c) => c.outcome === o).length ?? 0;
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+  const removeAll = useDeleteCalls();
+  const [confirmAll, setConfirmAll] = useState(false);
+  // "Delete all" follows the outcome filter: everything, or only that outcome.
+  const toDelete = outcome === "all" ? (callCount?.total ?? data?.length ?? 0) : count(outcome);
+  const allLabel = outcome === "all" ? "Delete all" : `Delete all ${OUTCOME_LABELS[outcome].toLowerCase()}`;
 
   return (
     <>
@@ -97,6 +156,7 @@ export default function CallsPage() {
         emptyDescription="Start a call from Follow-ups or a customer's profile."
         globalFilterFn={(c, q) => `${c.customer_name} ${c.model ?? ""} ${c.registration_number ?? ""} ${c.notes ?? ""}`.toLowerCase().includes(q)}
         toolbar={
+          <>
           <Select value={outcome} onValueChange={(v) => setOutcome(v as typeof outcome)}>
             <SelectTrigger className="w-48">
               <SelectValue />
@@ -110,8 +170,29 @@ export default function CallsPage() {
               ))}
             </SelectContent>
           </Select>
+          {isAdmin && (
+            <Button variant="outline" className="text-destructive hover:text-destructive" disabled={!toDelete} onClick={() => setConfirmAll(true)}>
+              <Trash2 /> {allLabel}
+            </Button>
+          )}
+          </>
         }
       />
+      {confirmAll && (
+        <ConfirmDialog
+          open={confirmAll}
+          onOpenChange={setConfirmAll}
+          title={outcome === "all" ? `Delete all ${toDelete.toLocaleString("en-IN")} calls?` : `Delete all ${OUTCOME_LABELS[outcome].toLowerCase()} calls?`}
+          description={
+            outcome === "all"
+              ? "Every call in the call log is deleted for everyone, including older calls not listed here. The nightly backups keep a copy for 90 days."
+              : `All ${OUTCOME_LABELS[outcome].toLowerCase()} calls are deleted for everyone${capped ? ", including older ones not listed here" : ` (${toDelete})`}. Other calls stay. The nightly backups keep a copy for 90 days.`
+          }
+          confirmLabel={outcome === "all" ? "Delete all calls" : "Delete these calls"}
+          destructive
+          onConfirm={() => removeAll.mutate(outcome === "all" ? null : outcome)}
+        />
+      )}
     </>
   );
 }
