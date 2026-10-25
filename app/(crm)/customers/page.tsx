@@ -63,7 +63,7 @@ const columns: ColumnDef<Customer>[] = [
       return v ? (
         <div className="flex flex-col items-start gap-1">
           <span className="text-sm">{v.next_service_type}</span>
-          <DueBadge date={v.next_service_date} />
+          <DueBadge date={v.next_service_date} serviceType={v.next_service_type} />
         </div>
       ) : (
         "—"

@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { daysFromToday, OUTCOME_LABELS, relativeDay, STATE_LABELS } from "@/lib/format";
+import { useOverdueDays } from "@/lib/queries";
 import type { AppointmentState, CallOutcome } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -50,10 +51,18 @@ export function OutcomeBadge({ outcome }: { outcome: CallOutcome }) {
 }
 
 /** Service due date: overdue (red), within a week (amber), later (gray). */
-export function DueBadge({ date }: { date: string }) {
+/** Next service status. Before the due date: "In N days". After it, the
+ * service type's overdue days are a grace period ("Due · N days left"); past
+ * them it's "Overdue N days", counted from when it became overdue. */
+export function DueBadge({ date, serviceType }: { date: string; serviceType?: string }) {
+  const graceDays = useOverdueDays(serviceType);
   const n = daysFromToday(date);
-  const tone: Tone = n < 0 ? "red" : n <= 7 ? "amber" : "gray";
-  return <ToneBadge tone={tone}>{n < 0 ? `Overdue ${-n}d` : relativeDay(date)}</ToneBadge>;
+  if (n >= 0) return <ToneBadge tone={n <= 7 ? "amber" : "gray"}>{relativeDay(date)}</ToneBadge>;
+  const left = graceDays + n; // days until it becomes overdue
+  if (left >= 0) {
+    return <ToneBadge tone="amber">{left === 0 ? "Due · last day" : `Due · ${left} day${left === 1 ? "" : "s"} left`}</ToneBadge>;
+  }
+  return <ToneBadge tone="red">{`Overdue ${-left} day${left === -1 ? "" : "s"}`}</ToneBadge>;
 }
 
 export function RoleBadge({ role }: { role: string }) {

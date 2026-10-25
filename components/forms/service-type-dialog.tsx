@@ -34,9 +34,10 @@ export function ServiceTypeDialog({
   const [scheduled, setScheduled] = useState(draft.get("scheduled", serviceType ? serviceType.interval_days != null : true));
   const [days, setDays] = useState(draft.get("days", serviceType?.interval_days != null ? String(serviceType.interval_days) : ""));
   const [km, setKm] = useState(draft.get("km", serviceType?.interval_km != null ? String(serviceType.interval_km) : ""));
+  const [overdue, setOverdue] = useState(draft.get("overdue", serviceType?.overdue_days != null ? String(serviceType.overdue_days) : ""));
   const [price, setPrice] = useState(draft.get("price", serviceType?.price != null ? String(serviceType.price) : ""));
   const [active, setActive] = useState(draft.get("active", serviceType?.active ?? true));
-  useAutosaveDraft(draftKey, { name, description, isFree, scheduled, days, km, price, active });
+  useAutosaveDraft(draftKey, { name, description, isFree, scheduled, days, km, overdue, price, active });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const create = useCreateServiceType();
   const update = useUpdateServiceType();
@@ -46,6 +47,7 @@ export function ServiceTypeDialog({
     if (!name.trim()) next.name = "Enter a name.";
     if (scheduled && !(Number(days) > 0)) next.days = "Enter how many days until it's due.";
     if (km && !/^\d+$/.test(km)) next.km = "Kilometres as a whole number.";
+    if (overdue && !/^\d+$/.test(overdue)) next.overdue = "Days as a whole number.";
     if (!isFree && price && !/^\d+$/.test(price)) next.price = "Price in whole rupees.";
     setErrors(next);
     if (Object.keys(next).length) return;
@@ -56,6 +58,7 @@ export function ServiceTypeDialog({
       interval_days: scheduled ? whole(days) : null,
       interval_km: scheduled ? whole(km) : null,
       price: isFree ? null : whole(price),
+      overdue_days: whole(overdue),
       active,
     };
     if (editing) await update.mutateAsync({ id: serviceType.id, ...body });
@@ -130,6 +133,21 @@ export function ServiceTypeDialog({
             </Field>
           </div>
         )}
+
+        <Field data-invalid={!!errors.overdue}>
+          <FieldLabel htmlFor="st-overdue">Overdue after</FieldLabel>
+          <InputGroup>
+            <InputGroupInput id="st-overdue" inputMode="numeric" value={overdue} onChange={(e) => setOverdue(e.target.value)} placeholder="e.g. 30" aria-invalid={!!errors.overdue} />
+            <InputGroupAddon align="inline-end">
+              <InputGroupText>days past due</InputGroupText>
+            </InputGroupAddon>
+          </InputGroup>
+          <FieldDescription>
+            How long after the due date this service can still be done before it shows as <span className="font-medium">Overdue</span>.
+            Empty = overdue straight after the due date.
+          </FieldDescription>
+          <FieldError>{errors.overdue}</FieldError>
+        </Field>
 
         {!isFree && (
           <Field data-invalid={!!errors.price}>

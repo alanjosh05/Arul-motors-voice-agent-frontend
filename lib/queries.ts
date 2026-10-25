@@ -162,6 +162,13 @@ export function useServiceTypeNames(): string[] {
   }, [data]);
 }
 
+/** Days after the due date before a bike with this next service is overdue
+ * (the service type's "Overdue after"; 0 when not set or unknown). */
+export function useOverdueDays(serviceType: string | undefined): number {
+  const { data } = useServiceTypes();
+  return data?.find((t) => t.name === serviceType)?.overdue_days ?? 0;
+}
+
 /** The scheduled service that follows `current` (types with an interval, in
  * order); the last one repeats. */
 export function nextScheduledType(types: ServiceType[] | undefined, current: string): ServiceType | undefined {
@@ -294,6 +301,7 @@ export interface ServiceTypeInput {
   interval_days?: number | null;
   interval_km?: number | null;
   price?: number | null;
+  overdue_days?: number | null;
   active: boolean;
 }
 

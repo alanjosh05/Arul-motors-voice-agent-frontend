@@ -113,7 +113,7 @@ const columns: ColumnDef<Vehicle>[] = [
         <span className="text-sm">
           {row.original.next_service_type} · <span className="tabular">{formatDay(row.original.next_service_date)}</span>
         </span>
-        <DueBadge date={row.original.next_service_date} />
+        <DueBadge date={row.original.next_service_date} serviceType={row.original.next_service_type} />
       </div>
     ),
   },

@@ -93,6 +93,8 @@ export interface DueService {
   model: string;
   next_service_date: string;
   next_service_type: string;
+  overdue_from?: string; // due date + the type's overdue days
+  is_overdue?: boolean;
 }
 
 export interface DashboardStats {
@@ -124,6 +126,7 @@ export interface ServiceType {
   interval_days: number | null; // when the next one falls due (null = on demand)
   interval_km: number | null;
   price: number | null; // ₹, shown in the CRM only
+  overdue_days: number | null; // days after the due date before it's overdue (null = 0)
   sort_order: number;
   active: boolean;
   bikes_due: number;

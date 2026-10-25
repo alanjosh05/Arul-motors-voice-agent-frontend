@@ -86,7 +86,7 @@ const columns: ColumnDef<DueService>[] = [
     cell: ({ row }) => (
       <div className="flex flex-col items-start gap-1">
         <span className="tabular text-sm">{formatDay(row.original.next_service_date)}</span>
-        <DueBadge date={row.original.next_service_date} />
+        <DueBadge date={row.original.next_service_date} serviceType={row.original.next_service_type} />
       </div>
     ),
   },

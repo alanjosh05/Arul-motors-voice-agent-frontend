@@ -225,7 +225,7 @@ export default function DashboardPage() {
                         {d.model} · {d.next_service_type}
                       </p>
                     </div>
-                    <DueBadge date={d.next_service_date} />
+                    <DueBadge date={d.next_service_date} serviceType={d.next_service_type} />
                     <CallButton
                       iconOnly
                       customer={{ id: d.customer_id, name: d.name, mobile_number: d.mobile_number }}

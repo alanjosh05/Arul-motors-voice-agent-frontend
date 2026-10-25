@@ -115,7 +115,7 @@ function BikeCard({ vehicle, customer }: { vehicle: Vehicle; customer: CustomerD
             {booking ? (
               <Badge className="bg-primary/10 text-primary">Booked {formatDay(booking.appointment_date)}</Badge>
             ) : (
-              <DueBadge date={vehicle.next_service_date} />
+              <DueBadge date={vehicle.next_service_date} serviceType={vehicle.next_service_type} />
             )}
           </div>
           <Progress value={progress} className="h-1.5" />

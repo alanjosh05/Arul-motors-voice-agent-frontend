@@ -119,6 +119,9 @@ export default function ServiceTypesPage() {
                     ) : (
                       <span className="text-sm text-muted-foreground">On demand</span>
                     )}
+                    <p className="text-xs text-muted-foreground">
+                      {t.overdue_days ? `Overdue ${t.overdue_days} days after due` : "Overdue right after due"}
+                    </p>
                   </TableCell>
                   <TableCell className="tabular text-right text-sm">
                     {t.is_free ? "—" : t.price != null ? `₹${t.price.toLocaleString("en-IN")}` : "—"}
