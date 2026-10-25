@@ -1,11 +1,13 @@
 "use client";
 
 // Internet connectivity (React Haiku's useNetwork) and connection speed for
-// the header indicator. Speed is measured the light way: how long the CRM's
-// own API takes to answer a tiny request (every 3 s while the details panel is
-// open, every 10 s otherwise, only while the tab is visible), plus the
-// browser's own bandwidth estimate where it has one. No download speed tests:
-// they'd use the showroom's mobile data and slow the CRM.
+// the header indicator (guide: docs/NETWORK-SPEED-GUIDE.md):
+// - server reply time: how long the CRM's own API takes to answer a tiny
+//   request (every 3 s while the details panel is open, every 10 s otherwise,
+//   only while the tab is visible);
+// - download speed (Mbps): a 256 KB file, only while the panel is open, so the
+//   showroom's mobile data isn't used in the background;
+// - the browser's own network type / bandwidth estimate where it has one.
 //
 // Client-only: React Haiku reads `navigator` as it renders, which doesn't
 // exist while pages are pre-built, so the indicator is loaded with ssr: false.
