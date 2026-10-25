@@ -14,7 +14,6 @@ import { useServiceHistory } from "@/lib/queries";
 import type { ServiceHistoryItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const SHOWN = 3; // newest services shown before "Show all"
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -156,7 +155,6 @@ function Entry({ item, subtitle }: { item: ServiceHistoryItem; subtitle?: string
 /** A bike's service history (newest first), shown on its card. */
 export function ServiceHistory({ vehicleId, subtitle }: { vehicleId: number; subtitle?: string }) {
   const { data, isLoading } = useServiceHistory(vehicleId);
-  const [all, setAll] = useState(false);
   const items = data ?? [];
   return (
     <div className="space-y-3">
@@ -170,18 +168,13 @@ export function ServiceHistory({ vehicleId, subtitle }: { vehicleId: number; sub
           <Wrench className="size-4" /> No services yet. Close a booking to record one.
         </p>
       ) : (
-        <>
-          <ul className="space-y-4">
-            {(all ? items : items.slice(0, SHOWN)).map((item) => (
-              <Entry key={item.kind === "record" ? `r${item.id}` : `b${item.appointment_id}`} item={item} subtitle={subtitle} />
-            ))}
-          </ul>
-          {items.length > SHOWN && (
-            <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setAll((v) => !v)}>
-              {all ? "Show less" : `Show all ${items.length}`}
-            </Button>
-          )}
-        </>
+        // Every service, newest first, scrolling inside the card so the card
+        // keeps its height however many services (or open details) there are.
+        <ul className="max-h-80 space-y-4 overflow-y-auto overscroll-contain pr-2 [scrollbar-gutter:stable]">
+          {items.map((item) => (
+            <Entry key={item.kind === "record" ? `r${item.id}` : `b${item.appointment_id}`} item={item} subtitle={subtitle} />
+          ))}
+        </ul>
       )}
     </div>
   );
