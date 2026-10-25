@@ -91,9 +91,11 @@ export function ActiveCallsPill() {
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-2">
         <p className="px-2 pt-1 pb-2 text-xs font-medium text-muted-foreground">Agent on calls now</p>
-        {activeCalls.map((c) => (
-          <ActiveCallRow key={c.call_id ?? c.id} call={c} />
-        ))}
+        <div className="scroll-y max-h-80">
+          {activeCalls.map((c) => (
+            <ActiveCallRow key={c.call_id ?? c.id} call={c} />
+          ))}
+        </div>
       </PopoverContent>
     </Popover>
   );
@@ -182,7 +184,7 @@ export function NotificationsBell() {
         </div>
         {shown.length ? (
           // Native scrolling: Radix ScrollArea doesn't scroll with only a max height.
-          <div className="max-h-[min(26rem,calc(100svh-9rem))] overflow-y-auto overscroll-contain [scrollbar-gutter:stable]">
+          <div className="scroll-y max-h-[min(26rem,calc(100svh-9rem))]">
             <div className="space-y-0.5 p-1.5" onClick={() => setOpen(false)}>
               {shown.map((n) => (
                 <NotificationItem key={n.id} n={n} unread />

@@ -169,7 +169,7 @@ export default function DashboardPage() {
             {isLoading ? (
               <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
             ) : data?.todays_appointments.length ? (
-              <ul className="divide-y">
+              <ul className="scroll-y max-h-80 divide-y pr-1">
                 {data.todays_appointments.map((a) => (
                   <li key={a.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
                     <CustomerAvatar name={a.customer_name ?? "?"} />

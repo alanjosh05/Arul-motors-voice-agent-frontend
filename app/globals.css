@@ -147,3 +147,30 @@
     font-variant-numeric: tabular-nums;
   }
 }
+
+/* Custom Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e184;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #646d7a;
+}
+/* A list that scrolls inside its box (give it a max height). Scrolling stops
+   at the ends instead of moving the page, and the scrollbar's space is kept
+   so the content doesn't shift when it appears. */
+@utility scroll-y {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}

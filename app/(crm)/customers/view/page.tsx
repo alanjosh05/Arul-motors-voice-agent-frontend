@@ -301,34 +301,36 @@ function CustomerProfile() {
         <TabsContent value="bookings">
           <Card className="py-0">
             {customer.appointments.length ? (
-              <Table>
-                <TableHeader className="bg-muted/40">
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead>Date</TableHead>
-                    <TableHead>Booking</TableHead>
-                    <TableHead>Bike</TableHead>
-                    <TableHead>Service</TableHead>
-                    <TableHead>Notes</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {customer.appointments.map((a) => (
-                    <TableRow key={a.id}>
-                      <TableCell className="tabular font-medium">{formatDay(a.appointment_date)}</TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground">{a.id}</TableCell>
-                      <TableCell>
-                        <span className="plate">{a.registration_number}</span>
-                      </TableCell>
-                      <TableCell>{a.service_type}</TableCell>
-                      <TableCell className="max-w-56 truncate text-muted-foreground">{a.notes ?? "—"}</TableCell>
-                      <TableCell><AppointmentStateBadge state={a.state} /></TableCell>
-                      <TableCell><AppointmentActions appointment={{ ...a, customer_name: customer.name }} showCustomerLink={false} /></TableCell>
+              <div className="scroll-y max-h-[28rem]">
+                <Table>
+                  <TableHeader className="bg-muted/40">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead>Date</TableHead>
+                      <TableHead>Booking</TableHead>
+                      <TableHead>Bike</TableHead>
+                      <TableHead>Service</TableHead>
+                      <TableHead>Notes</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead />
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {customer.appointments.map((a) => (
+                      <TableRow key={a.id}>
+                        <TableCell className="tabular font-medium">{formatDay(a.appointment_date)}</TableCell>
+                        <TableCell className="font-mono text-xs text-muted-foreground">{a.id}</TableCell>
+                        <TableCell>
+                          <span className="plate">{a.registration_number}</span>
+                        </TableCell>
+                        <TableCell>{a.service_type}</TableCell>
+                        <TableCell className="max-w-56 truncate text-muted-foreground">{a.notes ?? "—"}</TableCell>
+                        <TableCell><AppointmentStateBadge state={a.state} /></TableCell>
+                        <TableCell><AppointmentActions appointment={{ ...a, customer_name: customer.name }} showCustomerLink={false} /></TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             ) : (
               <Empty className="py-12">
                 <EmptyHeader>
@@ -353,23 +355,25 @@ function CustomerProfile() {
             </CardHeader>
             <CardContent>
               {customer.calls.length ? (
-                <ol className="relative space-y-6 border-l pl-6">
-                  {customer.calls.map((c) => (
-                    <li key={c.id} className="relative">
-                      <span className="absolute top-1 -left-[29px] size-2.5 rounded-full border-2 border-background bg-primary ring-1 ring-primary/30" />
-                      <div className="flex flex-wrap items-center gap-2">
-                        <OutcomeBadge outcome={c.outcome} />
-                        <span className="text-sm text-muted-foreground">{formatTimestamp(c.created_at)}</span>
-                        <span className="text-xs text-muted-foreground">({parseTimestamp(c.created_at).toLocaleDateString("en-IN", { weekday: "long" })})</span>
-                      </div>
-                      <p className="mt-1 text-sm">
-                        {c.model ? `${c.model} · ` : ""}
-                        {c.callback_date ? `Call back on ${formatDay(c.callback_date)}` : c.notes ?? "No notes"}
-                      </p>
-                      {c.callback_date && c.notes && <p className="text-sm text-muted-foreground">{c.notes}</p>}
-                    </li>
-                  ))}
-                </ol>
+                <div className="scroll-y max-h-[32rem] pl-1.5">
+                  <ol className="relative space-y-6 border-l pl-6">
+                    {customer.calls.map((c) => (
+                      <li key={c.id} className="relative">
+                        <span className="absolute top-1 -left-[29px] size-2.5 rounded-full border-2 border-background bg-primary ring-1 ring-primary/30" />
+                        <div className="flex flex-wrap items-center gap-2">
+                          <OutcomeBadge outcome={c.outcome} />
+                          <span className="text-sm text-muted-foreground">{formatTimestamp(c.created_at)}</span>
+                          <span className="text-xs text-muted-foreground">({parseTimestamp(c.created_at).toLocaleDateString("en-IN", { weekday: "long" })})</span>
+                        </div>
+                        <p className="mt-1 text-sm">
+                          {c.model ? `${c.model} · ` : ""}
+                          {c.callback_date ? `Call back on ${formatDay(c.callback_date)}` : c.notes ?? "No notes"}
+                        </p>
+                        {c.callback_date && c.notes && <p className="text-sm text-muted-foreground">{c.notes}</p>}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
               ) : (
                 <Empty className="py-8">
                   <EmptyHeader>

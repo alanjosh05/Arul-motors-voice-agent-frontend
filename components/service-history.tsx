@@ -191,7 +191,7 @@ export function ServiceHistory({ vehicleId, subtitle }: { vehicleId: number; sub
       ) : (
         // Every service, newest first, scrolling inside the card so the card
         // keeps its height however many services (or open details) there are.
-        <ul className="max-h-80 space-y-4 overflow-y-auto overscroll-contain pr-2 [scrollbar-gutter:stable]">
+        <ul className="scroll-y max-h-80 space-y-4 pr-2">
           {items.map((item) => (
             <Entry key={item.kind === "record" ? `r${item.id}` : `b${item.appointment_id}`} item={item} subtitle={subtitle} />
           ))}

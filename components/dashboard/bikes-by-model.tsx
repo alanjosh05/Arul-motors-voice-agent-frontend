@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import { useBikeModels, useVehicles } from "@/lib/queries";
 
 const SHOWN = 8; // models listed before "Show all"
@@ -44,7 +45,7 @@ export function BikesByModel() {
           </Empty>
         ) : (
           <>
-            <ul className="grid gap-x-8 gap-y-3 md:grid-cols-2">
+            <ul className={cn("grid gap-x-8 gap-y-3 md:grid-cols-2", all && "scroll-y max-h-96 pr-1")}>
               {(all ? models : models.slice(0, SHOWN)).map((m) => (
                 <li key={m.model} className="space-y-1.5">
                   <div className="flex items-baseline justify-between gap-3 text-sm">
