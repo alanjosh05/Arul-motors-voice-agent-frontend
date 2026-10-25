@@ -398,6 +398,13 @@ export const useDeleteCalls = () =>
     },
   );
 
+/** Edit a closed service's job card fields (a new PDF is optional). */
+export const useUpdateServiceRecord = () =>
+  useCrmMutation(({ id, form }: { id: number; form: FormData }) =>
+    apiUpload<{ message: string }>(`/api/service-records/${id}`, form, "PATCH"),
+    { success: "Service record updated" },
+  );
+
 export interface CallLogInput {
   customer_id: number;
   outcome: string;

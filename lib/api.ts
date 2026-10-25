@@ -67,12 +67,12 @@ export async function api<T = unknown>(
 }
 
 /** POST a multipart form (fields + files) to the API, e.g. a service report. */
-export async function apiUpload<T = unknown>(path: string, form: FormData): Promise<T> {
+export async function apiUpload<T = unknown>(path: string, form: FormData, method: "POST" | "PATCH" = "POST"): Promise<T> {
   let response: Response;
   try {
     // No Content-Type: the browser sets the multipart boundary itself.
     response = await fetch(API_URL + path, {
-      method: "POST",
+      method,
       headers: authHeaders(),
       body: form,
       signal: AbortSignal.timeout(120_000),

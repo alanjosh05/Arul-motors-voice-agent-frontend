@@ -1,13 +1,14 @@
 "use client";
 
-import { ChevronDown, FileText, History, Wrench } from "lucide-react";
+import { ChevronDown, FileText, History, Pencil, Wrench } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { CloseServiceDialog } from "@/components/forms/lazy";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { errorMessage, openFile } from "@/lib/api";
-import { formatDate, formatKm } from "@/lib/format";
+import { formatDate, formatKm, formatTimestamp } from "@/lib/format";
 import { FEEDBACK_CHECKS, rupees } from "@/lib/job-card";
 import { useServiceHistory } from "@/lib/queries";
 import type { ServiceHistoryItem } from "@/lib/types";
@@ -24,9 +25,10 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-function Entry({ item }: { item: ServiceHistoryItem }) {
+function Entry({ item, subtitle }: { item: ServiceHistoryItem; subtitle?: string }) {
   const [opening, setOpening] = useState(false);
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
   if (item.kind === "booking") {
     return (
       <li className="relative space-y-0.5 pl-5">
@@ -113,6 +115,12 @@ function Entry({ item }: { item: ServiceHistoryItem }) {
           )}
           {item.remarks && <Row label="Remarks">{item.remarks}</Row>}
           {item.created_by && <Row label="Closed by">{item.created_by}</Row>}
+          {item.updated_by && (
+            <Row label="Last edited">
+              {item.updated_by}
+              {item.updated_at ? ` · ${formatTimestamp(item.updated_at)}` : ""}
+            </Row>
+          )}
         </div>
       )}
 
@@ -136,13 +144,17 @@ function Entry({ item }: { item: ServiceHistoryItem }) {
             <FileText /> Job card
           </Button>
         )}
+        <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setEditing(true)}>
+          <Pencil /> Edit
+        </Button>
       </div>
+      {editing && <CloseServiceDialog open={editing} onOpenChange={setEditing} record={item} subtitle={subtitle} />}
     </li>
   );
 }
 
 /** A bike's service history (newest first), shown on its card. */
-export function ServiceHistory({ vehicleId }: { vehicleId: number }) {
+export function ServiceHistory({ vehicleId, subtitle }: { vehicleId: number; subtitle?: string }) {
   const { data, isLoading } = useServiceHistory(vehicleId);
   const [all, setAll] = useState(false);
   const items = data ?? [];
@@ -161,7 +173,7 @@ export function ServiceHistory({ vehicleId }: { vehicleId: number }) {
         <>
           <ul className="space-y-4">
             {(all ? items : items.slice(0, SHOWN)).map((item) => (
-              <Entry key={item.kind === "record" ? `r${item.id}` : `b${item.appointment_id}`} item={item} />
+              <Entry key={item.kind === "record" ? `r${item.id}` : `b${item.appointment_id}`} item={item} subtitle={subtitle} />
             ))}
           </ul>
           {items.length > SHOWN && (

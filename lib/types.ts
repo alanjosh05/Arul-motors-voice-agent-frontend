@@ -180,6 +180,7 @@ export interface JobCardFeedback {
 export interface ServiceHistoryItem {
   kind: "record" | "booking";
   id?: number; // record id (for the job card PDF)
+  vehicle_id?: number;
   appointment_id: string | null;
   service_date: string; // delivered on
   service_type: string;
@@ -206,6 +207,8 @@ export interface ServiceHistoryItem {
   next_service_date?: string | null;
   next_service_type?: string | null;
   created_by?: string | null;
+  updated_by?: string | null;
+  updated_at?: string | null;
   document_name?: string | null;
   document_size?: number | null;
 }

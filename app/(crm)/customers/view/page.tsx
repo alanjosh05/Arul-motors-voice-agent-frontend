@@ -123,7 +123,7 @@ function BikeCard({ vehicle, customer }: { vehicle: Vehicle; customer: CustomerD
             Due {formatDay(vehicle.next_service_date)} · {step < free.length ? `${step} of ${free.length} free services done` : "Free services completed"}
           </p>
         </div>
-        <ServiceHistory vehicleId={vehicle.id} />
+        <ServiceHistory vehicleId={vehicle.id} subtitle={`${customer.name} · ${vehicle.model} ${vehicle.registration_number}`} />
       </CardContent>
       {dialog === "edit" && <VehicleDialog open={dialog === "edit"} onOpenChange={(o) => !o && setDialog(null)} vehicle={vehicle} />}
       {dialog === "book" && <AppointmentDialog open={dialog === "book"} onOpenChange={(o) => !o && setDialog(null)} customerId={customer.id} vehicleId={vehicle.id} />}

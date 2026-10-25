@@ -22,11 +22,12 @@ import {
   nextScheduledType,
   useCloseService,
   useExtractJobCard,
+  useUpdateServiceRecord,
   useServiceTypeNames,
   useServiceTypes,
   useVehicles,
 } from "@/lib/queries";
-import type { Appointment, JobCardFeedback } from "@/lib/types";
+import type { Appointment, JobCardFeedback, ServiceHistoryItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_INTERVAL_DAYS = 90;
@@ -55,56 +56,79 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 /** Workshop: close a booking with its job card (Arul Motors' Yamaha job card
  * fields + the scanned PDF). Attaching the PDF reads it and fills the form.
- * Saves a maintenance record and moves the bike on. */
+ * Saves a maintenance record and moves the bike on.
+ *
+ * With `record` instead of `appointment` it edits a closed service: same
+ * form, opened with what was saved; a new PDF is optional (replaces it). */
 export function CloseServiceDialog({
   open,
   onOpenChange,
   appointment,
+  record,
+  subtitle,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   appointment?: Appointment;
+  record?: ServiceHistoryItem;
+  /** Who/what the edited record is for, e.g. "Karthik · Yamaha FZ-S TN 69 AB 1234". */
+  subtitle?: string;
 }) {
+  const editing = !!record;
   const { data: types } = useServiceTypes();
   const { data: vehicles } = useVehicles();
   const serviceTypes = useServiceTypeNames();
   const close = useCloseService();
+  const update = useUpdateServiceRecord();
   const extract = useExtractJobCard();
   const fileInput = useRef<HTMLInputElement>(null);
-  const bike = vehicles?.find((v) => v.id === appointment?.vehicle_id);
+  const bike = vehicles?.find((v) => v.id === (record?.vehicle_id ?? appointment?.vehicle_id));
 
   // Mounted only while open. Everything typed comes back after an accidental
   // close; a chosen file can't be kept by the browser, so the PDF is re-attached.
-  const draftKey = `close:${appointment?.id ?? ""}`;
+  const draftKey = editing ? `edit-service:${record.id}` : `close:${appointment?.id ?? ""}`;
   const draft = useFormDraft(draftKey);
   const today = todayISO();
   const booked = appointment?.appointment_date ?? today;
-  const bookedType = appointment?.service_type ?? "";
+  const bookedType = record?.service_type ?? appointment?.service_type ?? "";
   const isFree = types?.find((t) => t.name === bookedType)?.is_free;
+  const r = record; // edit: open with what was saved
 
-  const [jobCardNo, setJobCardNo] = useState(draft.get("jobCardNo", ""));
-  const [jobType, setJobType] = useState(draft.get("jobType", isFree === false ? "Paid service" : "Free service"));
+  const [jobCardNo, setJobCardNo] = useState(draft.get("jobCardNo", r?.job_card_no ?? ""));
+  const [jobType, setJobType] = useState(draft.get("jobType", r ? (r.job_type ?? "") : isFree === false ? "Paid service" : "Free service"));
   const [serviceType, setServiceType] = useState(draft.get("serviceType", bookedType));
-  const [receivedDate, setReceivedDate] = useState<string | null>(draft.get("receivedDate", booked <= today ? booked : today));
-  const [deliveredDate, setDeliveredDate] = useState<string | null>(draft.get("deliveredDate", today));
-  const [odometer, setOdometer] = useState(draft.get("odometer", ""));
-  const [frame, setFrame] = useState<string | null>(draft.get("frame", null)); // null = from the bike
-  const [engine, setEngine] = useState<string | null>(draft.get("engine", null));
-  const [requests, setRequests] = useState(draft.get("requests", ""));
-  const [jobsDone, setJobsDone] = useState<string[]>(draft.get("jobsDone", []));
-  const [workDone, setWorkDone] = useState(draft.get("workDone", ""));
-  const [parts, setParts] = useState<PartRow[]>(draft.get("parts", [emptyPart()]));
-  const [labour, setLabour] = useState<LabourRow[]>(draft.get("labour", []));
-  const [checks, setChecks] = useState<string[]>(draft.get("checks", []));
-  const [feedback, setFeedback] = useState<JobCardFeedback>(draft.get("feedback", {}));
-  const [technician, setTechnician] = useState(draft.get("technician", ""));
-  const [mechanic, setMechanic] = useState(draft.get("mechanic", ""));
-  const [supervisor, setSupervisor] = useState(draft.get("supervisor", ""));
-  const [remarks, setRemarks] = useState(draft.get("remarks", ""));
+  const [receivedDate, setReceivedDate] = useState<string | null>(
+    draft.get("receivedDate", r ? (r.received_date ?? null) : booked <= today ? booked : today),
+  );
+  const [deliveredDate, setDeliveredDate] = useState<string | null>(draft.get("deliveredDate", r?.service_date ?? today));
+  const [odometer, setOdometer] = useState(draft.get("odometer", r?.odometer_km != null ? String(r.odometer_km) : ""));
+  // null = take it from the bike
+  const [frame, setFrame] = useState<string | null>(draft.get("frame", r?.frame_number ?? null));
+  const [engine, setEngine] = useState<string | null>(draft.get("engine", r?.engine_number ?? null));
+  const [requests, setRequests] = useState(draft.get("requests", r?.customer_requests ?? ""));
+  const [jobsDone, setJobsDone] = useState<string[]>(draft.get("jobsDone", r?.jobs_done ?? []));
+  const [workDone, setWorkDone] = useState(draft.get("workDone", r?.work_done ?? ""));
+  const [parts, setParts] = useState<PartRow[]>(
+    draft.get(
+      "parts",
+      r?.parts?.length
+        ? r.parts.map((p) => ({ part_no: p.part_no ?? "", name: p.name, qty: String(p.qty), amount: String(p.amount), warranty: !!p.warranty }))
+        : [emptyPart()],
+    ),
+  );
+  const [labour, setLabour] = useState<LabourRow[]>(
+    draft.get("labour", (r?.labour ?? []).map((l) => ({ description: l.description, amount: String(l.amount) }))),
+  );
+  const [checks, setChecks] = useState<string[]>(draft.get("checks", r?.delivery_checks ?? []));
+  const [feedback, setFeedback] = useState<JobCardFeedback>(draft.get("feedback", r?.feedback ?? {}));
+  const [technician, setTechnician] = useState(draft.get("technician", r?.technician ?? ""));
+  const [mechanic, setMechanic] = useState(draft.get("mechanic", r?.mechanic ?? ""));
+  const [supervisor, setSupervisor] = useState(draft.get("supervisor", r?.supervisor ?? ""));
+  const [remarks, setRemarks] = useState(draft.get("remarks", r?.remarks ?? ""));
   // Next service: suggested from the schedule (Service types), counted from
-  // the delivery date, until staff pick something else.
-  const [nextTypeChoice, setNextType] = useState<string | null>(draft.get("nextType", null));
-  const [nextDateChoice, setNextDate] = useState<string | null | undefined>(draft.get("nextDate", undefined));
+  // the delivery date, until staff pick something else (edit: as saved).
+  const [nextTypeChoice, setNextType] = useState<string | null>(draft.get("nextType", r?.next_service_type ?? null));
+  const [nextDateChoice, setNextDate] = useState<string | null | undefined>(draft.get("nextDate", r ? (r.next_service_date ?? null) : undefined));
   const [file, setFile] = useState<File | null>(null);
   // What reading the job card filled in, and anything to double-check.
   const [readNote, setReadNote] = useState<{ filled: number; warnings: string[]; failed?: boolean } | null>(null);
@@ -178,8 +202,9 @@ export function CloseServiceDialog({
     put(card.remarks, setRemarks);
 
     const warnings: string[] = [];
-    if (card.registration_number && appointment?.registration_number && alnum(card.registration_number) !== alnum(appointment.registration_number)) {
-      warnings.push(`The card says ${card.registration_number}, but this booking is for ${appointment.registration_number}. Is it the right job card?`);
+    const reg = appointment?.registration_number ?? bike?.registration_number;
+    if (card.registration_number && reg && alnum(card.registration_number) !== alnum(reg)) {
+      warnings.push(`The card says ${card.registration_number}, but this bike is ${reg}. Is it the right job card?`);
     }
     const cardTotal = card.parts.reduce((s, p) => s + (p.warranty ? 0 : p.amount ?? 0), 0) + card.labour.reduce((s, l) => s + (l.amount ?? 0), 0);
     if (card.total_amount != null && card.total_amount !== cardTotal) {
@@ -208,7 +233,7 @@ export function CloseServiceDialog({
     if (!next.file) readCard(picked);
   };
 
-  if (!appointment) return null;
+  if (!appointment && !record) return null;
 
   async function submit() {
     const next: Record<string, string> = {};
@@ -228,7 +253,7 @@ export function CloseServiceDialog({
     });
     if (!jobsDone.length && !workDone.trim() && !usedParts.length && !usedLabour.length)
       next.work = "Tick the jobs done, add parts or labour, or describe the work.";
-    if (!file) next.file = errors.file ?? "Attach the scanned job card (PDF).";
+    if (!file && !editing) next.file = errors.file ?? "Attach the scanned job card (PDF).";
     if (nextDate && deliveredDate && nextDate <= deliveredDate) next.nextDate = "Must be after this service.";
     setErrors(next);
     if (Object.keys(next).length) return;
@@ -260,8 +285,9 @@ export function CloseServiceDialog({
       form.append("next_service_date", nextDate);
       form.append("next_service_type", nextType);
     }
-    form.append("report", file!, file!.name);
-    await close.mutateAsync({ id: appointment!.id, form });
+    if (file) form.append("report", file, file.name); // editing: optional, replaces the job card
+    if (editing) await update.mutateAsync({ id: record.id!, form });
+    else await close.mutateAsync({ id: appointment!.id, form });
     draft.clear();
     onOpenChange(false);
   }
@@ -273,16 +299,22 @@ export function CloseServiceDialog({
       open={open}
       onOpenChange={onOpenChange}
       draft={draft}
-      title="Close service"
-      description={`${appointment.customer_name ?? ""} · ${appointment.model ?? ""} ${appointment.registration_number ?? ""} · booked ${formatDay(appointment.appointment_date)}`}
-      submitLabel="Close service"
-      pending={close.isPending || extract.isPending}
+      title={editing ? "Edit service" : "Close service"}
+      description={
+        editing
+          ? `${subtitle ?? ""}${record.job_card_no ? ` · job card ${record.job_card_no}` : ""}`
+          : `${appointment!.customer_name ?? ""} · ${appointment!.model ?? ""} ${appointment!.registration_number ?? ""} · booked ${formatDay(appointment!.appointment_date)}`
+      }
+      submitLabel={editing ? "Save changes" : "Close service"}
+      pending={close.isPending || update.isPending || extract.isPending}
       onSubmit={() => submit().catch(() => {})}
       xl
     >
       <FieldGroup>
         <Field data-invalid={!!errors.file}>
-          <FieldLabel>Scanned job card (PDF)</FieldLabel>
+          <FieldLabel>
+            Scanned job card (PDF){editing && record.document_name ? ` · now: ${record.document_name} (attach a new one to replace it)` : ""}
+          </FieldLabel>
           <input
             ref={fileInput}
             type="file"
