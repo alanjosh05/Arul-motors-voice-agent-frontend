@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { CallProvider } from "@/components/call/call-provider";
+import { IdleLogout } from "@/components/idle-logout";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { SiteHeader } from "@/components/layout/site-header";
 import { LiveProvider } from "@/components/live-provider";
@@ -49,6 +50,7 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
     <ShiftGate>
     <LiveProvider>
       <CallProvider>
+        <IdleLogout />
         <SidebarProvider>
           <AppSidebar />
           <SidebarInset>
