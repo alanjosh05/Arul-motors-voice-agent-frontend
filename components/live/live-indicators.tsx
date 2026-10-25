@@ -20,7 +20,6 @@ import { useLive } from "@/components/live-provider";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { parseTimestamp, timeAgo } from "@/lib/format";
 import type { ActiveCall, LiveNotification } from "@/lib/types";
@@ -182,13 +181,14 @@ export function NotificationsBell() {
           </Button>
         </div>
         {shown.length ? (
-          <ScrollArea className="max-h-[26rem]">
+          // Native scrolling: Radix ScrollArea doesn't scroll with only a max height.
+          <div className="max-h-[min(26rem,calc(100svh-9rem))] overflow-y-auto overscroll-contain [scrollbar-gutter:stable]">
             <div className="space-y-0.5 p-1.5" onClick={() => setOpen(false)}>
               {shown.map((n) => (
                 <NotificationItem key={n.id} n={n} unread />
               ))}
             </div>
-          </ScrollArea>
+          </div>
         ) : (
           <Empty className="border-0 py-10">
             <EmptyHeader>
