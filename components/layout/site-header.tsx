@@ -1,6 +1,7 @@
 "use client";
 
 import { CalendarPlus, Motorbike, Moon, Plus, Sun, UserPlus } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -26,6 +27,9 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { AppointmentDialog, CustomerDialog } from "@/components/forms/lazy";
+
+// Client-only: React Haiku's useNetwork reads `navigator` while rendering.
+const NetworkStatus = dynamic(() => import("@/components/network/network-status"), { ssr: false });
 
 export function SiteHeader() {
   const pathname = usePathname();
@@ -64,6 +68,7 @@ export function SiteHeader() {
       </Breadcrumb>
       <div className="ml-auto flex items-center gap-2">
         <ActiveCallsPill />
+        <NetworkStatus />
         <LiveStatus />
         <CommandMenu onNewCustomer={() => setCustomerOpen(true)} onNewBooking={() => setBookingOpen(true)} />
         <DropdownMenu>
