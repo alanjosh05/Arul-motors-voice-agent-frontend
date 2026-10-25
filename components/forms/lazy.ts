@@ -8,6 +8,6 @@ import dynamic from "next/dynamic";
 export const CustomerDialog = dynamic(() => import("./customer-dialog").then((m) => m.CustomerDialog), { ssr: false });
 export const VehicleDialog = dynamic(() => import("./vehicle-dialog").then((m) => m.VehicleDialog), { ssr: false });
 export const AppointmentDialog = dynamic(() => import("./appointment-dialog").then((m) => m.AppointmentDialog), { ssr: false });
-export const CompleteDialog = dynamic(() => import("./complete-dialog").then((m) => m.CompleteDialog), { ssr: false });
+export const CloseServiceDialog = dynamic(() => import("./close-service-dialog").then((m) => m.CloseServiceDialog), { ssr: false });
 export const LogCallDialog = dynamic(() => import("./log-call-dialog").then((m) => m.LogCallDialog), { ssr: false });
 export const ServiceTypeDialog = dynamic(() => import("./service-type-dialog").then((m) => m.ServiceTypeDialog), { ssr: false });

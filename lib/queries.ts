@@ -4,7 +4,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { useLiveStatus } from "@/components/live-provider";
-import { api, errorMessage } from "./api";
+import { api, apiUpload, errorMessage } from "./api";
 import { SERVICE_TYPES } from "./format";
 import type {
   AppSettings,
@@ -14,6 +14,7 @@ import type {
   CustomerDetail,
   DashboardStats,
   DueService,
+  ServiceHistoryItem,
   ServiceType,
   StaffUser,
   Vehicle,
@@ -32,6 +33,7 @@ export const keys = {
   serviceTypes: ["service-types"] as const,
   voiceStatus: ["voice-status"] as const,
   settings: ["settings"] as const,
+  serviceHistory: (vehicleId: number) => ["service-history", vehicleId] as const,
 };
 
 // ---------------------------------------------------------------- queries
@@ -93,6 +95,13 @@ export const useCalls = () =>
 
 export const useCallCount = () =>
   useQuery({ queryKey: [...keys.calls, "count"], queryFn: () => api<{ total: number }>("/api/calls/count") });
+
+/** A bike's service history (maintenance records + older services), newest first. */
+export const useServiceHistory = (vehicleId: number) =>
+  useQuery({
+    queryKey: keys.serviceHistory(vehicleId),
+    queryFn: () => api<ServiceHistoryItem[]>(`/api/vehicles/${vehicleId}/service-history`),
+  });
 
 /** Start loading a customer's profile before it's opened (e.g. on row hover). */
 export function usePrefetchCustomer() {
@@ -170,7 +179,7 @@ export function useRefreshAll() {
   return useCallback(
     () =>
       Promise.all(
-        ["stats", "customers", "customer", "vehicles", "due", "appointments", "calls", "service-types"].map((key) =>
+        ["stats", "customers", "customer", "vehicles", "due", "appointments", "calls", "service-types", "service-history"].map((key) =>
           qc.invalidateQueries({ queryKey: [key] }),
         ),
       ),
@@ -258,10 +267,11 @@ export const useUpdateAppointment = () =>
 export const useCancelAppointment = () =>
   useCrmMutation((id: string) => api(`/api/appointments/${id}/cancel`, { method: "POST" }));
 
-export const useCompleteAppointment = () =>
-  useCrmMutation(
-    ({ id, ...body }: { id: string; next_service_date?: string | null; next_service_type?: string | null }) =>
-      api(`/api/appointments/${id}/complete`, { method: "POST", body }),
+/** Close a booking: the service details plus the service report PDF. */
+export const useCloseService = () =>
+  useCrmMutation(({ id, form }: { id: string; form: FormData }) =>
+    apiUpload<{ message: string; id: number }>(`/api/appointments/${id}/close`, form),
+    { success: "Service closed and recorded" },
   );
 
 export interface CallLogInput {

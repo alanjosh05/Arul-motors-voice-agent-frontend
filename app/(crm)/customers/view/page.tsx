@@ -17,6 +17,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { AppointmentActions, CallButton } from "@/components/actions";
+import { ServiceHistory } from "@/components/service-history";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { CustomerAvatar } from "@/components/customer-avatar";
 import { AppointmentStateBadge, DueBadge, OutcomeBadge } from "@/components/status-badges";
@@ -116,6 +117,7 @@ function BikeCard({ vehicle, customer }: { vehicle: Vehicle; customer: CustomerD
             Due {formatDay(vehicle.next_service_date)} · {step < free.length ? `${step} of ${free.length} free services done` : "Free services completed"}
           </p>
         </div>
+        <ServiceHistory vehicleId={vehicle.id} />
       </CardContent>
       {dialog === "edit" && <VehicleDialog open={dialog === "edit"} onOpenChange={(o) => !o && setDialog(null)} vehicle={vehicle} />}
       {dialog === "book" && <AppointmentDialog open={dialog === "book"} onOpenChange={(o) => !o && setDialog(null)} customerId={customer.id} vehicleId={vehicle.id} />}
@@ -123,7 +125,7 @@ function BikeCard({ vehicle, customer }: { vehicle: Vehicle; customer: CustomerD
         open={dialog === "delete"}
         onOpenChange={(o) => !o && setDialog(null)}
         title={`Delete ${vehicle.model} (${vehicle.registration_number})?`}
-        description="The bike and its service bookings are deleted. Call history is kept."
+        description="The bike, its bookings and its service history (with the report PDFs) are deleted. Call history is kept."
         confirmLabel="Delete bike"
         destructive
         onConfirm={() => remove.mutate(vehicle.id)}

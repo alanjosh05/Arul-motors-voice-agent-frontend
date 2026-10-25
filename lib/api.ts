@@ -66,6 +66,50 @@ export async function api<T = unknown>(
   return data as T;
 }
 
+/** POST a multipart form (fields + files) to the API, e.g. a service report. */
+export async function apiUpload<T = unknown>(path: string, form: FormData): Promise<T> {
+  let response: Response;
+  try {
+    // No Content-Type: the browser sets the multipart boundary itself.
+    response = await fetch(API_URL + path, {
+      method: "POST",
+      headers: authHeaders(),
+      body: form,
+      signal: AbortSignal.timeout(120_000),
+    });
+  } catch {
+    throw new ApiError("Couldn't upload. Check your connection and try again.", 0);
+  }
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const detail = data?.detail;
+    const message = typeof detail === "string" ? detail : Array.isArray(detail) ? detail[0]?.msg : null;
+    throw new ApiError(message ?? `Upload failed (${response.status}).`, response.status);
+  }
+  return data as T;
+}
+
+/** Open a file from the API (signed in) in a new tab, e.g. a service report
+ * PDF. The tab opens straight away (so pop-up blockers allow it) and shows the
+ * file once it has downloaded. */
+export async function openFile(path: string): Promise<void> {
+  const tab = window.open("", "_blank");
+  try {
+    const response = await fetch(API_URL + path, { headers: authHeaders(), signal: AbortSignal.timeout(120_000) });
+    if (!response.ok) {
+      const data = await response.json().catch(() => null);
+      throw new ApiError(typeof data?.detail === "string" ? data.detail : `Couldn't open the file (${response.status}).`, response.status);
+    }
+    const url = URL.createObjectURL(await response.blob());
+    if (tab) tab.location.href = url;
+    else window.location.assign(url);
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  } catch (e) {
+    tab?.close();
+    throw e instanceof ApiError ? e : new ApiError("Can't reach the server. Check your connection.", 0);
+  }
+}
+
 /** Download a file from the API (signed in), saving it under the server's
  * file name. Used for the Excel export and database backup. */
 export async function downloadFile(path: string, fallbackName: string): Promise<void> {

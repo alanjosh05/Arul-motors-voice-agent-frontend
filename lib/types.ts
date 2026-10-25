@@ -134,7 +134,38 @@ export interface VoiceConfig {
 }
 
 // ------------------------------------------------------------- live feed
-export type LiveEntity = "customers" | "vehicles" | "appointments" | "calls" | "due" | "stats" | "service_types" | "settings";
+export type LiveEntity =
+  | "customers"
+  | "vehicles"
+  | "appointments"
+  | "calls"
+  | "due"
+  | "stats"
+  | "service_types"
+  | "settings"
+  | "service_records";
+
+/** One entry in a bike's service history: a maintenance record written when a
+ * service was closed ("record"), or an older completed booking without one,
+ * e.g. from the client's import ("booking"). */
+export interface ServiceHistoryItem {
+  kind: "record" | "booking";
+  id?: number; // record id (for the report PDF)
+  appointment_id: string | null;
+  service_date: string;
+  service_type: string;
+  odometer_km?: number | null;
+  work_done?: string | null;
+  parts?: string | null;
+  amount?: number | null;
+  technician?: string | null;
+  remarks?: string | null;
+  next_service_date?: string | null;
+  next_service_type?: string | null;
+  created_by?: string | null;
+  document_name?: string | null;
+  document_size?: number | null;
+}
 
 /** Showroom-wide settings (admins change them in Settings). */
 export interface AppSettings {

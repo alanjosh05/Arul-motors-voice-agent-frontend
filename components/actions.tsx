@@ -28,7 +28,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCancelAppointment, useDeleteCustomer, useVoiceEnabled } from "@/lib/queries";
 import type { Appointment, Customer } from "@/lib/types";
-import { AppointmentDialog, CompleteDialog, CustomerDialog, LogCallDialog } from "@/components/forms/lazy";
+import { AppointmentDialog, CloseServiceDialog, CustomerDialog, LogCallDialog } from "@/components/forms/lazy";
 
 const stop = (e: React.SyntheticEvent) => e.stopPropagation();
 
@@ -74,7 +74,7 @@ export function CallButton({
   );
 }
 
-/** ⋯ menu for a service booking: reschedule, mark serviced, cancel, open customer. */
+/** ⋯ menu for a service booking: reschedule, close service (record + PDF), cancel, open customer. */
 export function AppointmentActions({ appointment, showCustomerLink = true }: { appointment: Appointment; showCustomerLink?: boolean }) {
   const [dialog, setDialog] = useState<"reschedule" | "complete" | "cancel" | null>(null);
   const cancel = useCancelAppointment();
@@ -91,7 +91,7 @@ export function AppointmentActions({ appointment, showCustomerLink = true }: { a
           {open && (
             <>
               <DropdownMenuItem onClick={() => setDialog("complete")}>
-                <CircleCheck /> Mark serviced
+                <CircleCheck /> Close service
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setDialog("reschedule")}>
                 <CalendarClock /> Reschedule
@@ -116,7 +116,7 @@ export function AppointmentActions({ appointment, showCustomerLink = true }: { a
         </DropdownMenuContent>
       </DropdownMenu>
       {dialog === "reschedule" && <AppointmentDialog open={dialog === "reschedule"} onOpenChange={(o) => !o && setDialog(null)} appointment={appointment} />}
-      {dialog === "complete" && <CompleteDialog open={dialog === "complete"} onOpenChange={(o) => !o && setDialog(null)} appointment={appointment} />}
+      {dialog === "complete" && <CloseServiceDialog open={dialog === "complete"} onOpenChange={(o) => !o && setDialog(null)} appointment={appointment} />}
       {dialog === "cancel" && <ConfirmDialog
         open={dialog === "cancel"}
         onOpenChange={(o) => !o && setDialog(null)}

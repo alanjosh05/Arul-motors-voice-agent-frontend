@@ -63,7 +63,7 @@ export default function ServiceTypesPage() {
         <Info />
         <AlertDescription>
           Types with a <span className="font-medium text-foreground">due after</span> interval form the service schedule, in the order below.
-          When the workshop marks a bike serviced, the CRM suggests the next scheduled type and its due date, and the voice agent follows up when it’s due.
+          When the workshop closes a service, the CRM suggests the next scheduled type and its due date, and the voice agent follows up when it’s due.
         </AlertDescription>
       </Alert>
 
