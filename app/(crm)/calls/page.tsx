@@ -10,7 +10,6 @@ import { CustomerAvatar } from "@/components/customer-avatar";
 import { DataTable, SortHeader } from "@/components/data-table";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
-import { OutcomeBadge } from "@/components/status-badges";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -20,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { formatDay, formatTimestamp, OUTCOME_LABELS, timeAgo } from "@/lib/format";
+import { formatTimestamp, OUTCOME_LABELS, timeAgo } from "@/lib/format";
 import { CALL_LOG_LIMIT, useCallCount, useCalls, useDeleteCall, useDeleteCalls } from "@/lib/queries";
 import type { CallLog, CallOutcome } from "@/lib/types";
 
@@ -100,12 +99,6 @@ const columns: ColumnDef<CallLog>[] = [
       ) : (
         "—"
       ),
-  },
-  { accessorKey: "outcome", header: "Outcome", cell: ({ row }) => <OutcomeBadge outcome={row.original.outcome} /> },
-  {
-    accessorKey: "callback_date",
-    header: "Call back",
-    cell: ({ row }) => <span className="tabular text-sm">{row.original.callback_date ? formatDay(row.original.callback_date) : "—"}</span>,
   },
   {
     accessorKey: "notes",
