@@ -10,6 +10,7 @@ import { CustomerAvatar } from "@/components/customer-avatar";
 import { useLive } from "@/components/live-provider";
 import { ActiveCallRow } from "@/components/live/live-indicators";
 import { BikesByModel } from "@/components/dashboard/bikes-by-model";
+import { UpcomingAndRecent } from "@/components/dashboard/upcoming-and-recent";
 import { StatCard } from "@/components/stat-card";
 import { DueBadge, OutcomeBadge } from "@/components/status-badges";
 import { Button } from "@/components/ui/button";
@@ -284,6 +285,8 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <UpcomingAndRecent data={data} isLoading={isLoading} />
 
       <BikesByModel />
     </>

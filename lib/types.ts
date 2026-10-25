@@ -116,6 +116,10 @@ export interface DashboardStats {
   todays_appointments: Appointment[];
   due_services: DueService[];
   recent_calls: CallLog[];
+  /** Booked services after today (the next 10). */
+  upcoming_list: Appointment[];
+  /** Latest services done, newest first (8). */
+  recent_services: RecentService[];
 }
 
 export interface ServiceType {
@@ -257,3 +261,21 @@ export type LiveMessage =
   | { id: number; type: "call.started"; data: ActiveCall; at: string }
   | { id: number; type: "call.ended"; data: CallEndedData; at: string }
   | LiveNotification;
+
+/** A service done: a job card record, or an older completed booking. */
+export interface RecentService {
+  kind: "record" | "booking";
+  id?: number; // record id
+  appointment_id: string | null;
+  customer_id: number;
+  vehicle_id: number;
+  service_date: string;
+  service_type: string;
+  job_type?: string | null;
+  job_card_no?: string | null;
+  amount?: number | null;
+  odometer_km?: number | null;
+  customer_name: string;
+  model: string;
+  registration_number: string;
+}
