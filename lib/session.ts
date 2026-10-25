@@ -4,6 +4,8 @@ import type { StaffUser } from "./types";
 
 const TOKEN_KEY = "am-crm.token";
 const USER_KEY = "am-crm.user";
+/** CRM data kept across reloads (components/providers.tsx). */
+export const QUERY_CACHE_KEY = "am-crm.cache";
 
 export function getToken(): string | null {
   try {
@@ -35,6 +37,7 @@ export function clearSession() {
   try {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(QUERY_CACHE_KEY); // cached CRM data holds customer details
   } catch {
     /* ignore */
   }

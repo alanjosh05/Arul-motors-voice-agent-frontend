@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { ChevronsUpDown, KeyRound, LogOut, Monitor, Moon, Sun } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -38,7 +39,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { initials } from "@/lib/format";
-import { useStats, useVoiceEnabled, useVoiceStatus } from "@/lib/queries";
+import { prefetchPage, useStats, useVoiceEnabled, useVoiceStatus } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 /** The Arul Motors logo: the red AM monogram, no background (vector, after
@@ -131,6 +132,7 @@ export function AppSidebar() {
   const pathname = usePathname();
   const { data: stats } = useStats();
   const { setOpenMobile } = useSidebar();
+  const queryClient = useQueryClient();
   const badges = {
     due: stats?.totals.due_this_week,
     today: stats?.totals.appointments_today,
@@ -166,7 +168,13 @@ export function AppSidebar() {
                   return (
                     <SidebarMenuItem key={item.href}>
                       <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
-                        <Link href={item.href} onClick={() => setOpenMobile(false)}>
+                        <Link
+                          href={item.href}
+                          onClick={() => setOpenMobile(false)}
+                          // Load the page's data while the pointer is on its way.
+                          onPointerEnter={() => prefetchPage(queryClient, item.href)}
+                          onFocus={() => prefetchPage(queryClient, item.href)}
+                        >
                           <item.icon />
                           <span>{item.title}</span>
                         </Link>

@@ -9,6 +9,9 @@ const nextConfig = {
   // A stray ~/package-lock.json made Next guess the home folder as the root.
   turbopack: { root: import.meta.dirname },
   agentRules: false,
+  // Each build gets its own id: the CRM data kept across reloads is dropped
+  // when a new build is deployed, so old data never meets new code.
+  env: { NEXT_PUBLIC_BUILD_ID: String(Date.now()) },
 };
 
 export default nextConfig;

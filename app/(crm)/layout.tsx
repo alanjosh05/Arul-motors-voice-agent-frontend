@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuth } from "@/components/auth-provider";
@@ -9,14 +10,30 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { LiveProvider } from "@/components/live-provider";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Spinner } from "@/components/ui/spinner";
+import { prefetchAllPages } from "@/lib/queries";
 
 export default function CrmLayout({ children }: { children: React.ReactNode }) {
   const { user, ready } = useAuth();
   const router = useRouter();
 
+  const queryClient = useQueryClient();
+
   useEffect(() => {
     if (ready && !user) router.replace("/login/");
   }, [ready, user, router]);
+
+  // Once signed in, load every page's data in the background (when the
+  // browser is idle), so moving around the CRM shows data straight away.
+  useEffect(() => {
+    if (!user) return;
+    const warm = () => prefetchAllPages(queryClient);
+    if ("requestIdleCallback" in window) {
+      const id = window.requestIdleCallback(warm, { timeout: 2000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const t = setTimeout(warm, 500);
+    return () => clearTimeout(t);
+  }, [user, queryClient]);
 
   if (!ready || !user) {
     return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, type QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { useLiveStatus } from "@/components/live-provider";
@@ -37,20 +37,58 @@ export const keys = {
   serviceHistory: (vehicleId: number) => ["service-history", vehicleId] as const,
 };
 
+export const CALL_LOG_LIMIT = 1000; // newest calls loaded into the call log (API default)
+
+/** Each list's key + fetch in one place: the hooks below, prefetching and the
+ * cache kept across reloads all use these, so they always agree. */
+export const queries = {
+  stats: () => ({ queryKey: keys.stats, queryFn: () => api<DashboardStats>("/api/stats") }),
+  customers: () => ({ queryKey: keys.customers(), queryFn: () => api<Customer[]>("/api/customers") }),
+  vehicles: () => ({ queryKey: keys.vehicles, queryFn: () => api<Vehicle[]>("/api/vehicles") }),
+  due: (days: number) => ({
+    queryKey: keys.due(days),
+    queryFn: () => api<DueService[]>("/api/due-services", { query: { days } }),
+  }),
+  appointments: () => ({ queryKey: keys.appointments, queryFn: () => api<Appointment[]>("/api/appointments") }),
+  calls: () => ({ queryKey: keys.calls, queryFn: () => api<CallLog[]>("/api/calls", { query: { limit: CALL_LOG_LIMIT } }) }),
+  callCount: () => ({ queryKey: [...keys.calls, "count"], queryFn: () => api<{ total: number }>("/api/calls/count") }),
+  serviceTypes: () => ({ queryKey: keys.serviceTypes, queryFn: () => api<ServiceType[]>("/api/service-types"), staleTime: 300_000 }),
+  settings: () => ({ queryKey: keys.settings, queryFn: () => api<AppSettings>("/api/settings"), staleTime: 300_000 }),
+};
+
+/** What each page shows, so it can load before the page is opened. */
+const PAGE_QUERIES: Record<string, (() => { queryKey: readonly unknown[]; queryFn: () => Promise<unknown>; staleTime?: number })[]> = {
+  "/dashboard/": [queries.stats, queries.vehicles],
+  "/follow-ups/": [() => queries.due(7)],
+  "/customers/": [queries.customers],
+  "/bikes/": [queries.vehicles],
+  "/appointments/": [queries.appointments],
+  "/calls/": [queries.calls, queries.callCount],
+  "/service-types/": [queries.serviceTypes],
+  "/settings/": [queries.settings],
+};
+
+/** Load a page's data ahead of time (sidebar hover). Fresh data is not refetched. */
+export function prefetchPage(qc: QueryClient, href: string) {
+  for (const make of PAGE_QUERIES[href] ?? []) void qc.prefetchQuery({ staleTime: 30_000, ...make() });
+}
+
+/** Warm every page's data in the background after sign-in, so moving around
+ * the CRM is instant. A few small requests over one HTTP/2 connection. */
+export function prefetchAllPages(qc: QueryClient) {
+  for (const href of Object.keys(PAGE_QUERIES)) prefetchPage(qc, href);
+}
+
 // ---------------------------------------------------------------- queries
 /** Dashboard stats. While the live WebSocket is connected, changes arrive as
  * events (no polling); polling every minute is only the fallback. */
 export function useStats() {
   const live = useLiveStatus() === "live";
-  return useQuery({
-    queryKey: keys.stats,
-    queryFn: () => api<DashboardStats>("/api/stats"),
-    refetchInterval: live ? false : 60_000,
-  });
+  return useQuery({ ...queries.stats(), refetchInterval: live ? false : 60_000 });
 }
 
 export const useCustomers = (q?: string) =>
-  useQuery({ queryKey: keys.customers(q), queryFn: () => api<Customer[]>("/api/customers", { query: { q } }) });
+  useQuery(q ? { queryKey: keys.customers(q), queryFn: () => api<Customer[]>("/api/customers", { query: { q } }) } : queries.customers());
 
 export const useCustomer = (id: number | null) =>
   useQuery({
@@ -59,7 +97,7 @@ export const useCustomer = (id: number | null) =>
     enabled: !!id,
   });
 
-export const useVehicles = () => useQuery({ queryKey: keys.vehicles, queryFn: () => api<Vehicle[]>("/api/vehicles") });
+export const useVehicles = () => useQuery(queries.vehicles());
 
 /** Bike models already saved for customers, most sold first, with how many
  * bikes of each (for the model picker). */
@@ -80,22 +118,13 @@ export function useBikeModels(): { model: string; count: number }[] {
 
 // Keeps the current list on screen while another period (7/14/30 days) loads.
 export const useDueServices = (days: number) =>
-  useQuery({
-    queryKey: keys.due(days),
-    queryFn: () => api<DueService[]>("/api/due-services", { query: { days } }),
-    placeholderData: keepPreviousData,
-  });
+  useQuery({ ...queries.due(days), placeholderData: keepPreviousData });
 
-export const useAppointments = () =>
-  useQuery({ queryKey: keys.appointments, queryFn: () => api<Appointment[]>("/api/appointments") });
+export const useAppointments = () => useQuery(queries.appointments());
 
-export const CALL_LOG_LIMIT = 1000; // newest calls loaded into the call log (API default)
+export const useCalls = () => useQuery(queries.calls());
 
-export const useCalls = () =>
-  useQuery({ queryKey: keys.calls, queryFn: () => api<CallLog[]>("/api/calls", { query: { limit: CALL_LOG_LIMIT } }) });
-
-export const useCallCount = () =>
-  useQuery({ queryKey: [...keys.calls, "count"], queryFn: () => api<{ total: number }>("/api/calls/count") });
+export const useCallCount = () => useQuery(queries.callCount());
 
 /** A bike's service history (maintenance records + older services), newest first. */
 export const useServiceHistory = (vehicleId: number) =>
@@ -114,8 +143,7 @@ export function usePrefetchCustomer() {
 export const useStaff = (enabled = true) =>
   useQuery({ queryKey: keys.staff, queryFn: () => api<StaffUser[]>("/api/staff"), enabled });
 
-export const useSettings = () =>
-  useQuery({ queryKey: keys.settings, queryFn: () => api<AppSettings>("/api/settings"), staleTime: 300_000 });
+export const useSettings = () => useQuery(queries.settings());
 
 /** Whether the voice agent is switched on (Settings → Voice agent). False
  * until known, so call buttons never flash in when it's off. */
@@ -139,19 +167,28 @@ export function useSetVoiceEnabled() {
   return useMutation({
     mutationFn: (voice_agent_enabled: boolean) =>
       api<AppSettings>("/api/settings", { method: "PATCH", body: { voice_agent_enabled } }),
+    // The switch (and every call button) flips at once; undone on failure.
+    onMutate: async (voice_agent_enabled) => {
+      await qc.cancelQueries({ queryKey: keys.settings });
+      const before = qc.getQueryData<AppSettings>(keys.settings);
+      qc.setQueryData<AppSettings>(keys.settings, { ...before, voice_agent_enabled });
+      return { before };
+    },
     onSuccess: (settings) => {
       qc.setQueryData(keys.settings, settings);
       qc.invalidateQueries({ queryKey: keys.voiceStatus });
       toast.success(settings.voice_agent_enabled ? "Voice agent turned on" : "Voice agent turned off");
     },
-    onError: (error) => toast.error(errorMessage(error)),
+    onError: (error, _on, context) => {
+      if (context?.before) qc.setQueryData(keys.settings, context.before);
+      toast.error(errorMessage(error));
+    },
   });
 }
 
 export const fetchVoiceConfig = () => api<VoiceConfig>("/api/voice/config");
 
-export const useServiceTypes = () =>
-  useQuery({ queryKey: keys.serviceTypes, queryFn: () => api<ServiceType[]>("/api/service-types"), staleTime: 300_000 });
+export const useServiceTypes = () => useQuery(queries.serviceTypes());
 
 /** Active service type names in schedule order (built-in list until loaded). */
 export function useServiceTypeNames(): string[] {
@@ -195,19 +232,40 @@ export function useRefreshAll() {
   );
 }
 
+/** An optimistic change: update cached lists straight away (so the screen
+ * changes on click) and give back how to undo it if the server refuses. */
+type Optimistic<TVars> = (qc: QueryClient, vars: TVars) => () => void;
+
+/** Apply `change` to every cached copy of a list (e.g. all ["customers", q]),
+ * returning an undo that puts the previous copies back. */
+export function patchLists<T>(qc: QueryClient, key: readonly unknown[], change: (rows: T[]) => T[]): () => void {
+  const before = qc.getQueriesData<T[]>({ queryKey: key });
+  for (const [queryKey, rows] of before) if (Array.isArray(rows)) qc.setQueryData(queryKey, change(rows));
+  return () => before.forEach(([queryKey, rows]) => qc.setQueryData(queryKey, rows));
+}
+
 function useCrmMutation<TVars>(
   fn: (vars: TVars) => Promise<{ message?: string; id?: number | string }>,
-  options: { success?: string | ((vars: TVars) => string) } = {},
+  options: { success?: string | ((vars: TVars) => string); optimistic?: Optimistic<TVars> } = {},
 ) {
+  const qc = useQueryClient();
   const refresh = useRefreshAll();
   return useMutation({
     mutationFn: fn,
+    onMutate: async (vars) => {
+      if (!options.optimistic) return undefined;
+      await qc.cancelQueries(); // a refetch in flight mustn't overwrite the change
+      return { undo: options.optimistic(qc, vars) };
+    },
     onSuccess: async (data, vars) => {
       await refresh();
       const success = typeof options.success === "function" ? options.success(vars) : options.success;
       toast.success(success ?? data?.message ?? "Saved");
     },
-    onError: (error) => toast.error(errorMessage(error)),
+    onError: (error, _vars, context) => {
+      context?.undo(); // put the screen back as it was
+      toast.error(errorMessage(error));
+    },
   });
 }
 
@@ -228,7 +286,9 @@ export const useUpdateCustomer = () =>
   );
 
 export const useDeleteCustomer = () =>
-  useCrmMutation((id: number) => api(`/api/customers/${id}`, { method: "DELETE" }));
+  useCrmMutation((id: number) => api(`/api/customers/${id}`, { method: "DELETE" }), {
+    optimistic: (qc, id) => patchLists<Customer>(qc, ["customers"], (rows) => rows.filter((c) => c.id !== id)),
+  });
 
 export interface VehicleSaleInput {
   name: string;
@@ -252,7 +312,9 @@ export const useUpdateVehicle = () =>
   );
 
 export const useDeleteVehicle = () =>
-  useCrmMutation((id: number) => api(`/api/vehicles/${id}`, { method: "DELETE" }));
+  useCrmMutation((id: number) => api(`/api/vehicles/${id}`, { method: "DELETE" }), {
+    optimistic: (qc, id) => patchLists<Vehicle>(qc, keys.vehicles, (rows) => rows.filter((v) => v.id !== id)),
+  });
 
 export interface AppointmentInput {
   customer_id: number;
@@ -273,7 +335,9 @@ export const useUpdateAppointment = () =>
   );
 
 export const useCancelAppointment = () =>
-  useCrmMutation((id: string) => api(`/api/appointments/${id}/cancel`, { method: "POST" }));
+  useCrmMutation((id: string) => api(`/api/appointments/${id}/cancel`, { method: "POST" }), {
+    optimistic: (qc, id) => patchLists<Appointment>(qc, keys.appointments, (rows) => rows.filter((a) => a.id !== id)),
+  });
 
 /** Fields read from a scanned job card (by Gemini, on the server). */
 export interface ExtractedJobCard {
@@ -344,20 +408,43 @@ export const useCreateServiceType = () =>
   useCrmMutation((body: ServiceTypeInput) => api<{ message: string; id: number }>("/api/service-types", { method: "POST", body }));
 
 export const useUpdateServiceType = () =>
-  useCrmMutation(({ id, ...body }: Partial<ServiceTypeInput> & { id: number }) =>
-    api(`/api/service-types/${id}`, { method: "PATCH", body }),
+  useCrmMutation(
+    ({ id, ...body }: Partial<ServiceTypeInput> & { id: number }) => api(`/api/service-types/${id}`, { method: "PATCH", body }),
+    {
+      optimistic: (qc, { id, ...body }) =>
+        patchLists<ServiceType>(qc, keys.serviceTypes, (rows) => rows.map((t) => (t.id === id ? { ...t, ...body } : t))),
+    },
   );
 
 export const useDeleteServiceType = () =>
-  useCrmMutation((id: number) => api(`/api/service-types/${id}`, { method: "DELETE" }));
+  useCrmMutation((id: number) => api(`/api/service-types/${id}`, { method: "DELETE" }), {
+    optimistic: (qc, id) => patchLists<ServiceType>(qc, keys.serviceTypes, (rows) => rows.filter((t) => t.id !== id)),
+  });
 
 export function useMoveServiceType() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, direction }: { id: number; direction: "up" | "down" }) =>
       api(`/api/service-types/${id}/move`, { method: "POST", query: { direction } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: keys.serviceTypes }),
-    onError: (error) => toast.error(errorMessage(error)),
+    // Swap the rows on screen at once; the server's order replaces it after.
+    onMutate: async ({ id, direction }) => {
+      await qc.cancelQueries({ queryKey: keys.serviceTypes });
+      return {
+        undo: patchLists<ServiceType>(qc, keys.serviceTypes, (rows) => {
+          const i = rows.findIndex((t) => t.id === id);
+          const j = direction === "up" ? i - 1 : i + 1;
+          if (i < 0 || j < 0 || j >= rows.length) return rows;
+          const next = [...rows];
+          [next[i], next[j]] = [next[j], next[i]];
+          return next;
+        }),
+      };
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: keys.serviceTypes }),
+    onError: (error, _vars, context) => {
+      context?.undo();
+      toast.error(errorMessage(error));
+    },
   });
 }
 

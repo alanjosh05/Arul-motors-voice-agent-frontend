@@ -1,0 +1,32 @@
+# Arul Motors CRM on GoDaddy (Apache): caching, compression, error page.
+# Copied into out/ by `npm run build`; upload it with the rest of out/.
+
+Options -Indexes
+DirectoryIndex index.html
+ErrorDocument 404 /404.html
+
+# Compress text files on the way out (the JS bundle shrinks ~70%).
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/plain application/javascript text/javascript application/json image/svg+xml
+</IfModule>
+
+<IfModule mod_headers.c>
+  # Build files under /_next/static/ have a content hash in their name, so a
+  # new build always gets new names: the browser can keep them for a year.
+  SetEnvIf Request_URI "^/_next/static/" HASHED_ASSET
+  Header set Cache-Control "public, max-age=31536000, immutable" env=HASHED_ASSET
+
+  # Pages: always ask the server whether there's a newer version (a quick
+  # 304 when there isn't), so a new upload shows up straight away.
+  <FilesMatch "\.(html|txt)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+
+  # Logo and icons: a day.
+  <FilesMatch "\.(svg|png|ico|webp)$">
+    Header set Cache-Control "public, max-age=86400" env=!HASHED_ASSET
+  </FilesMatch>
+
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
