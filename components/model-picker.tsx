@@ -5,7 +5,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Command,
-  CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
@@ -17,6 +16,7 @@ import { useBikeModels } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 const tidy = (text: string) => text.replace(/\s+/g, " ").trim();
+const alnum = (text: string) => text.toLowerCase().replace(/[^a-z0-9]/g, "");
 
 /** Bike model: pick one already saved for other customers, or type a new one.
  * The × (or "Clear selection") removes a model picked by mistake. */
@@ -38,6 +38,9 @@ export function ModelPicker({
   const [search, setSearch] = useState("");
   const typed = tidy(search);
   const known = models.some((m) => m.model.toLowerCase() === typed.toLowerCase());
+  // Our own matching (not cmdk's filter, which hid the "Use …" option exactly
+  // when nothing saved matched): spaces and punctuation ignored ("fzs" -> FZ-S).
+  const shown = typed ? models.filter((m) => alnum(m.model).includes(alnum(typed))) : models;
 
   const choose = (model: string) => {
     onChange(tidy(model));
@@ -76,13 +79,15 @@ export function ModelPicker({
         )}
       </div>
       <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
-        <Command>
+        <Command shouldFilter={false}>
           <CommandInput placeholder="Search or type a new model…" value={search} onValueChange={setSearch} />
           <CommandList>
-            <CommandEmpty>{typed ? "No saved model matches." : "No models saved yet. Type one."}</CommandEmpty>
-            {models.length > 0 && (
+            {!typed && models.length === 0 && (
+              <p className="py-6 text-center text-sm text-muted-foreground">No models saved yet. Type one.</p>
+            )}
+            {shown.length > 0 && (
               <CommandGroup heading="Saved models">
-                {models.map((m) => (
+                {shown.map((m) => (
                   <CommandItem key={m.model} value={m.model} onSelect={() => choose(m.model)}>
                     <Check className={cn(value.toLowerCase() === m.model.toLowerCase() ? "opacity-100" : "opacity-0")} />
                     <span className="flex-1 truncate">{m.model}</span>
@@ -94,9 +99,8 @@ export function ModelPicker({
               </CommandGroup>
             )}
             {typed && !known && (
-              <CommandGroup heading="New model">
-                {/* forceMount: always offered while typing, whatever the filter matches. */}
-                <CommandItem forceMount value={`new:${typed}`} onSelect={() => choose(typed)}>
+              <CommandGroup heading={shown.length ? "Or add a new model" : "New model"}>
+                <CommandItem value={`new:${typed}`} onSelect={() => choose(typed)}>
                   <Plus /> Use “{typed}”
                 </CommandItem>
               </CommandGroup>
