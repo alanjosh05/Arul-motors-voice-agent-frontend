@@ -137,10 +137,16 @@ function NotificationItem({ n, unread }: { n: LiveNotification; unread: boolean 
   return n.data.customer_id ? <Link href={`/customers/view/?id=${n.data.customer_id}`}>{content}</Link> : content;
 }
 
+/** The bell lists only unread notifications. What's shown when it opens stays
+ * until it closes (or a notification is opened); after that they're read and
+ * gone next time. "Mark all read" clears the list at once. New ones still
+ * arrive while it's open. */
 export function NotificationsBell() {
   const { notifications, unread, markAllRead } = useLive();
   const [open, setOpen] = useState(false);
+  // Newest notification already read when the bell opened: anything newer is listed.
   const [seenAtOpen, setSeenAtOpen] = useState<number>(Infinity);
+  const shown = notifications.filter((n) => n.id > seenAtOpen);
   return (
     <Popover
       open={open}
@@ -163,15 +169,23 @@ export function NotificationsBell() {
       <PopoverContent align="end" className="w-[22rem] p-0">
         <div className="flex items-center justify-between border-b px-4 py-3">
           <p className="text-sm font-semibold">Notifications</p>
-          <Button variant="ghost" size="xs" onClick={markAllRead} disabled={!unread}>
+          <Button
+            variant="ghost"
+            size="xs"
+            onClick={() => {
+              markAllRead();
+              setSeenAtOpen(notifications[0]?.id ?? 0); // empty the list now
+            }}
+            disabled={!shown.length}
+          >
             <CheckCheck /> Mark all read
           </Button>
         </div>
-        {notifications.length ? (
+        {shown.length ? (
           <ScrollArea className="max-h-[26rem]">
             <div className="space-y-0.5 p-1.5" onClick={() => setOpen(false)}>
-              {notifications.map((n) => (
-                <NotificationItem key={n.id} n={n} unread={n.id > seenAtOpen} />
+              {shown.map((n) => (
+                <NotificationItem key={n.id} n={n} unread />
               ))}
             </div>
           </ScrollArea>
@@ -181,8 +195,8 @@ export function NotificationsBell() {
               <EmptyMedia variant="icon">
                 <Bell />
               </EmptyMedia>
-              <EmptyTitle>No notifications yet</EmptyTitle>
-              <EmptyDescription>Bookings and call outcomes from the voice agent show up here.</EmptyDescription>
+              <EmptyTitle>You&rsquo;re all caught up</EmptyTitle>
+              <EmptyDescription>New bookings and call outcomes from the voice agent show up here.</EmptyDescription>
             </EmptyHeader>
           </Empty>
         )}
