@@ -1,10 +1,12 @@
 "use client";
 
-import { CalendarPlus, Motorbike, Plus, UserPlus } from "lucide-react";
+import { CalendarPlus, Check, Monitor, Moon, Motorbike, Plus, Sun, UserPlus } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTheme } from "next-themes";
 import { useState } from "react";
+import { Calculator } from "@/components/layout/calculator";
 import { CommandMenu } from "@/components/layout/command-menu";
 import { ActiveCallsPill, LiveStatus, NotificationsBell } from "@/components/live/live-indicators";
 import { navTitle } from "@/components/layout/nav";
@@ -29,6 +31,34 @@ import { AppointmentDialog, CustomerDialog } from "@/components/forms/lazy";
 
 // Client-only: React Haiku's useNetwork reads `navigator` while rendering.
 const NetworkStatus = dynamic(() => import("@/components/network/network-status"), { ssr: false });
+
+const THEMES = [
+  { value: "light", label: "Light", icon: Sun },
+  { value: "dark", label: "Dark", icon: Moon },
+  { value: "system", label: "Auto (device)", icon: Monitor },
+] as const;
+
+function ThemeMenu() {
+  const { theme, setTheme } = useTheme();
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="size-8" aria-label="Theme">
+          <Sun className="scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
+          <Moon className="absolute scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-40">
+        {THEMES.map(({ value, label, icon: Icon }) => (
+          <DropdownMenuItem key={value} onClick={() => setTheme(value)}>
+            <Icon /> {label}
+            {(theme ?? "system") === value && <Check className="ml-auto" />}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 export function SiteHeader() {
   const pathname = usePathname();
@@ -87,7 +117,9 @@ export function SiteHeader() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <Calculator />
         <NotificationsBell />
+        <ThemeMenu />
       </div>
       {customerOpen && <CustomerDialog open={customerOpen} onOpenChange={setCustomerOpen} />}
       {bookingOpen && <AppointmentDialog open={bookingOpen} onOpenChange={setBookingOpen} />}

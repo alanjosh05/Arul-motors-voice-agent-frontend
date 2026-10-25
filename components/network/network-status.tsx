@@ -1,12 +1,9 @@
 "use client";
 
-import { CloudOff, Monitor, Moon, Sun, Wifi, WifiLow, WifiOff, WifiZero } from "lucide-react";
-import { useTheme } from "next-themes";
+import { CloudOff, Wifi, WifiLow, WifiOff, WifiZero } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Separator } from "@/components/ui/separator";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { type ConnectionQuality, useConnectionQuality } from "@/lib/use-connection-quality";
 import { cn } from "@/lib/utils";
 
@@ -37,17 +34,6 @@ function Spark({ values, className }: { values: number[]; className?: string }) 
     <svg viewBox="0 0 100 32" preserveAspectRatio="none" className={cn("h-8 w-full", className)} aria-hidden>
       <polyline points={points} fill="none" stroke="currentColor" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
     </svg>
-  );
-}
-
-function Theme() {
-  const { theme, setTheme } = useTheme();
-  return (
-    <ToggleGroup type="single" variant="outline" size="sm" value={theme ?? "system"} onValueChange={(v) => v && setTheme(v)} className="w-full">
-      <ToggleGroupItem value="light" className="flex-1" aria-label="Light theme"><Sun /> Light</ToggleGroupItem>
-      <ToggleGroupItem value="dark" className="flex-1" aria-label="Dark theme"><Moon /> Dark</ToggleGroupItem>
-      <ToggleGroupItem value="system" className="flex-1" aria-label="Device theme"><Monitor /> Auto</ToggleGroupItem>
-    </ToggleGroup>
   );
 }
 
@@ -100,11 +86,6 @@ export default function NetworkStatus() {
           <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground">
             <div className="space-y-1"><p>Mbps</p><Spark values={net.mbpsHistory} className="text-primary" /></div>
             <div className="space-y-1"><p>Reply ms</p><Spark values={net.history} className={look.tone} /></div>
-          </div>
-          <Separator />
-          <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground">Theme</p>
-            <Theme />
           </div>
         </PopoverContent>
       </Popover>
