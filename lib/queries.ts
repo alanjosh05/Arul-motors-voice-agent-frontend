@@ -14,6 +14,7 @@ import type {
   CustomerDetail,
   DashboardStats,
   DueService,
+  JobCardFeedback,
   ServiceHistoryItem,
   ServiceType,
   StaffUser,
@@ -273,6 +274,40 @@ export const useUpdateAppointment = () =>
 
 export const useCancelAppointment = () =>
   useCrmMutation((id: string) => api(`/api/appointments/${id}/cancel`, { method: "POST" }));
+
+/** Fields read from a scanned job card (by Gemini, on the server). */
+export interface ExtractedJobCard {
+  job_card_no: string | null;
+  job_type: string | null;
+  registration_number: string | null;
+  odometer_km: number | null;
+  received_date: string | null;
+  delivered_date: string | null;
+  frame_number: string | null;
+  engine_number: string | null;
+  customer_requests: string | null;
+  jobs_done: string[];
+  other_work: string | null;
+  parts: { part_no: string | null; name: string; qty: number; amount: number | null; warranty: boolean }[];
+  labour: { description: string; amount: number | null }[];
+  delivery_checks: string[];
+  feedback: JobCardFeedback;
+  technician: string | null;
+  mechanic: string | null;
+  supervisor: string | null;
+  remarks: string | null;
+  total_amount: number | null;
+}
+
+/** Read a job card PDF to pre-fill "Close service" (nothing is saved). */
+export const useExtractJobCard = () =>
+  useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData();
+      form.append("report", file, file.name);
+      return apiUpload<ExtractedJobCard>("/api/job-card/extract", form);
+    },
+  });
 
 /** Close a booking: the service details plus the service report PDF. */
 export const useCloseService = () =>

@@ -42,7 +42,7 @@ export function DatePicker({
           className={cn("h-9 w-full justify-start font-normal", !value && "text-muted-foreground")}
         >
           <CalendarIcon className="text-muted-foreground" />
-          {value ? formatDay(value) + " " + day(value).getFullYear() : placeholder}
+          {value ? formatDay(value) : placeholder}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">

@@ -14,12 +14,21 @@ export function toISO(date: Date): string {
   return format(date, "yyyy-MM-dd");
 }
 
-export function formatDate(value?: string | null, pattern = "d MMM yyyy"): string {
-  return value ? format(day(value), pattern) : "—";
+/** How every date is shown in the CRM: DD-MM-YYYY (e.g. 26-10-2026). The
+ * API and database keep YYYY-MM-DD, which sorts and compares correctly. */
+export const DATE_FORMAT = "dd-MM-yyyy";
+
+/** A date as DD-MM-YYYY. A `pattern` without a day (e.g. "MMM yyyy" for
+ * "Customer since Oct 2026") is used as given; any pattern with a day shows
+ * DD-MM-YYYY, so every date in the CRM looks the same. */
+export function formatDate(value?: string | null, pattern?: string): string {
+  if (!value) return "—";
+  return format(day(value), pattern && !pattern.includes("d") ? pattern : DATE_FORMAT);
 }
 
+/** A date with its weekday: "Mon, 26-10-2026". */
 export function formatDay(value?: string | null): string {
-  return value ? format(day(value), "EEE, d MMM") : "—";
+  return value ? format(day(value), `EEE, ${DATE_FORMAT}`) : "—";
 }
 
 /** Server timestamps are UTC "YYYY-MM-DD HH:MM:SS". */
@@ -28,7 +37,7 @@ export function parseTimestamp(value: string): Date {
 }
 
 export function formatTimestamp(value?: string | null): string {
-  return value ? format(parseTimestamp(value), "d MMM, h:mm a") : "—";
+  return value ? format(parseTimestamp(value), `${DATE_FORMAT}, h:mm a`) : "—";
 }
 
 export function timeAgo(value?: string | null): string {

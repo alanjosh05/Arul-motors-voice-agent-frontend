@@ -1,7 +1,7 @@
 "use client";
 
 import { addDays } from "date-fns";
-import { FileText, Plus, Trash2, Upload, X } from "lucide-react";
+import { AlertTriangle, FileText, Plus, Sparkles, Trash2, Upload, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { DatePicker } from "@/components/date-picker";
 import { FormDialog } from "@/components/forms/form-dialog";
@@ -10,12 +10,22 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldSeparator } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { errorMessage } from "@/lib/api";
 import { useAutosaveDraft, useFormDraft } from "@/lib/drafts";
 import { formatDay, todayISO, toISO } from "@/lib/format";
 import { DELIVERY_CHECKS, FEEDBACK_CHECKS, FEEDBACK_RATINGS, JOB_TYPES, JOBS_DONE, rupees } from "@/lib/job-card";
-import { nextScheduledType, useCloseService, useServiceTypeNames, useServiceTypes, useVehicles } from "@/lib/queries";
+import {
+  type ExtractedJobCard,
+  nextScheduledType,
+  useCloseService,
+  useExtractJobCard,
+  useServiceTypeNames,
+  useServiceTypes,
+  useVehicles,
+} from "@/lib/queries";
 import type { Appointment, JobCardFeedback } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +40,7 @@ const emptyLabour = (): LabourRow => ({ description: "", amount: "" });
 
 const isWhole = (v: string) => /^\d+$/.test(v.trim());
 const num = (v: string) => (isWhole(v) ? Number(v.trim()) : 0);
+const alnum = (v: string | null | undefined) => (v ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
 const sizeLabel = (bytes: number) => (bytes < 1024 * 1024 ? `${Math.ceil(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`);
 const toggle = (list: string[], item: string, on: boolean) => (on ? [...list, item] : list.filter((x) => x !== item));
 
@@ -43,7 +54,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 /** Workshop: close a booking with its job card (Arul Motors' Yamaha job card
- * fields + the scanned PDF). Saves a maintenance record and moves the bike on. */
+ * fields + the scanned PDF). Attaching the PDF reads it and fills the form.
+ * Saves a maintenance record and moves the bike on. */
 export function CloseServiceDialog({
   open,
   onOpenChange,
@@ -57,6 +69,7 @@ export function CloseServiceDialog({
   const { data: vehicles } = useVehicles();
   const serviceTypes = useServiceTypeNames();
   const close = useCloseService();
+  const extract = useExtractJobCard();
   const fileInput = useRef<HTMLInputElement>(null);
   const bike = vehicles?.find((v) => v.id === appointment?.vehicle_id);
 
@@ -93,6 +106,8 @@ export function CloseServiceDialog({
   const [nextTypeChoice, setNextType] = useState<string | null>(draft.get("nextType", null));
   const [nextDateChoice, setNextDate] = useState<string | null | undefined>(draft.get("nextDate", undefined));
   const [file, setFile] = useState<File | null>(null);
+  // What reading the job card filled in, and anything to double-check.
+  const [readNote, setReadNote] = useState<{ filled: number; warnings: string[]; failed?: boolean } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   useAutosaveDraft(draftKey, {
     jobCardNo, jobType, serviceType, receivedDate, deliveredDate, odometer, frame, engine, requests,
@@ -120,6 +135,67 @@ export function CloseServiceDialog({
   const setPart = (i: number, patch: Partial<PartRow>) => setParts((rows) => rows.map((r, j) => (j === i ? { ...r, ...patch } : r)));
   const setLabourRow = (i: number, patch: Partial<LabourRow>) => setLabour((rows) => rows.map((r, j) => (j === i ? { ...r, ...patch } : r)));
 
+  /** Fill the form from what was read off the card; returns what to show. */
+  const applyCard = (card: ExtractedJobCard) => {
+    let filled = 0;
+    const put = <T,>(value: T | null | undefined, setter: (v: T) => void) => {
+      if (value !== null && value !== undefined && value !== "") {
+        setter(value);
+        filled++;
+      }
+    };
+    put(card.job_card_no, setJobCardNo);
+    put(card.job_type && JOB_TYPES.includes(card.job_type) ? card.job_type : null, setJobType);
+    // The service stays the booking's: the circled free-service number is
+    // easy to misread (both models tested read "1" where "2" was circled).
+    put(card.odometer_km != null ? String(card.odometer_km) : null, setOdometer);
+    put(card.received_date && card.received_date <= today ? card.received_date : null, setReceivedDate);
+    put(card.delivered_date && card.delivered_date <= today ? card.delivered_date : null, setDeliveredDate);
+    put(card.frame_number?.toUpperCase(), setFrame);
+    put(card.engine_number?.toUpperCase(), setEngine);
+    put(card.customer_requests, setRequests);
+    const jobs = card.jobs_done.filter((j) => JOBS_DONE.includes(j));
+    put(jobs.length ? jobs : null, setJobsDone);
+    put(card.other_work, setWorkDone);
+    put(
+      card.parts.length
+        ? card.parts.map((p) => {
+            // The card's rupees are per row: turn them into "₹ each".
+            const qty = Math.max(1, p.qty || 1);
+            return { part_no: p.part_no ?? "", name: p.name, qty: String(qty), amount: p.amount == null ? "" : String(Math.round(p.amount / qty)), warranty: !!p.warranty };
+          })
+        : null,
+      setParts,
+    );
+    put(card.labour.length ? card.labour.map((l) => ({ description: l.description, amount: l.amount == null ? "" : String(l.amount) })) : null, setLabour);
+    const ticked = card.delivery_checks.filter((c) => DELIVERY_CHECKS.includes(c));
+    put(ticked.length ? ticked : null, setChecks);
+    const fb = Object.fromEntries(Object.entries(card.feedback ?? {}).filter(([, v]) => v !== null && v !== undefined)) as JobCardFeedback;
+    put(Object.keys(fb).length ? fb : null, setFeedback);
+    put(card.technician, setTechnician);
+    put(card.mechanic, setMechanic);
+    put(card.supervisor, setSupervisor);
+    put(card.remarks, setRemarks);
+
+    const warnings: string[] = [];
+    if (card.registration_number && appointment?.registration_number && alnum(card.registration_number) !== alnum(appointment.registration_number)) {
+      warnings.push(`The card says ${card.registration_number}, but this booking is for ${appointment.registration_number}. Is it the right job card?`);
+    }
+    const cardTotal = card.parts.reduce((s, p) => s + (p.warranty ? 0 : p.amount ?? 0), 0) + card.labour.reduce((s, l) => s + (l.amount ?? 0), 0);
+    if (card.total_amount != null && card.total_amount !== cardTotal) {
+      warnings.push(`The card's total is ${rupees(card.total_amount)}, but its rows add up to ${rupees(cardTotal)}. Check the parts and labour.`);
+    }
+    return { filled, warnings };
+  };
+
+  const readCard = (picked: File) => {
+    setReadNote(null);
+    extract.mutate(picked, {
+      onSuccess: (card) => setReadNote(applyCard(card)),
+      onError: (e) => setReadNote({ filled: 0, warnings: [errorMessage(e)], failed: true }),
+    });
+  };
+
   const pickFile = (picked: File | undefined | null) => {
     if (!picked) return;
     const isPdf = picked.type === "application/pdf" || picked.name.toLowerCase().endsWith(".pdf");
@@ -129,6 +205,7 @@ export function CloseServiceDialog({
     else if (picked.size > MAX_PDF_MB * 1024 * 1024) next.file = `The PDF must be ${MAX_PDF_MB} MB or smaller.`;
     setErrors(next);
     setFile(next.file ? null : picked);
+    if (!next.file) readCard(picked);
   };
 
   if (!appointment) return null;
@@ -199,11 +276,79 @@ export function CloseServiceDialog({
       title="Close service"
       description={`${appointment.customer_name ?? ""} · ${appointment.model ?? ""} ${appointment.registration_number ?? ""} · booked ${formatDay(appointment.appointment_date)}`}
       submitLabel="Close service"
-      pending={close.isPending}
+      pending={close.isPending || extract.isPending}
       onSubmit={() => submit().catch(() => {})}
       xl
     >
       <FieldGroup>
+        <Field data-invalid={!!errors.file}>
+          <FieldLabel>Scanned job card (PDF)</FieldLabel>
+          <input
+            ref={fileInput}
+            type="file"
+            accept="application/pdf,.pdf"
+            className="sr-only"
+            onChange={(e) => {
+              pickFile(e.target.files?.[0]);
+              e.target.value = ""; // allow picking the same file again
+            }}
+          />
+          {file ? (
+            <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3">
+              <FileText className="size-5 shrink-0 text-primary" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{file.name}</p>
+                <p className="text-xs text-muted-foreground">{sizeLabel(file.size)}</p>
+              </div>
+              <Button type="button" variant="outline" size="sm" disabled={extract.isPending} onClick={() => readCard(file)}>
+                <Sparkles /> Read again
+              </Button>
+              <Button type="button" variant="ghost" size="icon-sm" onClick={() => setFile(null)} aria-label="Remove file">
+                <X />
+              </Button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => fileInput.current?.click()}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                pickFile(e.dataTransfer.files?.[0]);
+              }}
+              className={cn(
+                "flex w-full flex-col items-center gap-1 rounded-lg border border-dashed p-5 text-sm text-muted-foreground transition-colors hover:bg-muted/40",
+                errors.file && "border-destructive",
+              )}
+            >
+              <Upload className="size-5" />
+              <span className="font-medium text-foreground">Choose or drop the scanned job card (PDF)</span>
+              <span>The form fills itself from the card · up to {MAX_PDF_MB} MB{draft.restored ? " · attach it again after reopening" : ""}</span>
+            </button>
+          )}
+          <FieldError>{errors.file}</FieldError>
+          {extract.isPending && (
+            <p className="flex items-center gap-2 rounded-lg border bg-primary/5 p-2.5 text-sm">
+              <Spinner /> Reading the job card…
+            </p>
+          )}
+          {readNote && !extract.isPending && (
+            <div className={cn("space-y-1 rounded-lg border p-2.5 text-sm", readNote.failed ? "border-destructive/30 bg-destructive/5" : "border-primary/20 bg-primary/5")}>
+              {!readNote.failed && (
+                <p className="flex items-center gap-2">
+                  <Sparkles className="size-4 text-primary" />
+                  {readNote.filled ? `Filled ${readNote.filled} fields from the job card. Check them before closing.` : "Couldn't read any fields from this card. Fill the form by hand."}
+                </p>
+              )}
+              {readNote.warnings.map((w) => (
+                <p key={w} className="flex items-start gap-2 text-amber-700 dark:text-amber-400">
+                  <AlertTriangle className="mt-0.5 size-4 shrink-0" /> {w}
+                </p>
+              ))}
+            </div>
+          )}
+        </Field>
+
         <Section title="Job">
           <div className="grid gap-4 sm:grid-cols-3">
             <Field>
@@ -367,7 +512,7 @@ export function CloseServiceDialog({
           </div>
         </Section>
 
-        <Section title="People & job card">
+        <Section title="People">
           <div className="grid gap-4 sm:grid-cols-3">
             <Field>
               <FieldLabel htmlFor="cs-tech">Bay / technician</FieldLabel>
@@ -385,50 +530,6 @@ export function CloseServiceDialog({
           <Field>
             <FieldLabel htmlFor="cs-remarks">Remarks</FieldLabel>
             <Input id="cs-remarks" value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Optional, e.g. rear tyre wear noted" />
-          </Field>
-          <Field data-invalid={!!errors.file}>
-            <FieldLabel>Scanned job card (PDF)</FieldLabel>
-            <input
-              ref={fileInput}
-              type="file"
-              accept="application/pdf,.pdf"
-              className="sr-only"
-              onChange={(e) => {
-                pickFile(e.target.files?.[0]);
-                e.target.value = ""; // allow picking the same file again
-              }}
-            />
-            {file ? (
-              <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3">
-                <FileText className="size-5 shrink-0 text-primary" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{file.name}</p>
-                  <p className="text-xs text-muted-foreground">{sizeLabel(file.size)}</p>
-                </div>
-                <Button type="button" variant="ghost" size="icon-sm" onClick={() => setFile(null)} aria-label="Remove file">
-                  <X />
-                </Button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => fileInput.current?.click()}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  pickFile(e.dataTransfer.files?.[0]);
-                }}
-                className={cn(
-                  "flex w-full flex-col items-center gap-1 rounded-lg border border-dashed p-5 text-sm text-muted-foreground transition-colors hover:bg-muted/40",
-                  errors.file && "border-destructive",
-                )}
-              >
-                <Upload className="size-5" />
-                <span className="font-medium text-foreground">Choose or drop the scanned job card (PDF)</span>
-                <span>Up to {MAX_PDF_MB} MB{draft.restored ? " · attach it again after reopening" : ""}</span>
-              </button>
-            )}
-            <FieldError>{errors.file}</FieldError>
           </Field>
         </Section>
 
