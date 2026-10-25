@@ -1,10 +1,9 @@
 "use client";
 
-import { CalendarPlus, Motorbike, Moon, Plus, Sun, UserPlus } from "lucide-react";
+import { CalendarPlus, Motorbike, Plus, UserPlus } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useTheme } from "next-themes";
 import { useState } from "react";
 import { CommandMenu } from "@/components/layout/command-menu";
 import { ActiveCallsPill, LiveStatus, NotificationsBell } from "@/components/live/live-indicators";
@@ -33,7 +32,6 @@ const NetworkStatus = dynamic(() => import("@/components/network/network-status"
 
 export function SiteHeader() {
   const pathname = usePathname();
-  const { resolvedTheme, setTheme } = useTheme();
   const [customerOpen, setCustomerOpen] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
   const title = navTitle(pathname);
@@ -90,16 +88,6 @@ export function SiteHeader() {
           </DropdownMenuContent>
         </DropdownMenu>
         <NotificationsBell />
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-8"
-          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-          aria-label="Toggle theme"
-        >
-          <Sun className="scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
-          <Moon className="absolute scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
-        </Button>
       </div>
       {customerOpen && <CustomerDialog open={customerOpen} onOpenChange={setCustomerOpen} />}
       {bookingOpen && <AppointmentDialog open={bookingOpen} onOpenChange={setBookingOpen} />}

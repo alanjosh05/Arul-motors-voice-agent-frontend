@@ -405,6 +405,12 @@ export const useUpdateServiceRecord = () =>
     { success: "Service record updated" },
   );
 
+/** Admins: delete a closed service; its booking opens again. */
+export const useDeleteServiceRecord = () =>
+  useCrmMutation((id: number) => api(`/api/service-records/${id}`, { method: "DELETE" }), {
+    success: "Service deleted. Its booking is upcoming again.",
+  });
+
 export interface CallLogInput {
   customer_id: number;
   outcome: string;

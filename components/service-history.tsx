@@ -1,8 +1,10 @@
 "use client";
 
-import { ChevronDown, FileText, History, Pencil, Wrench } from "lucide-react";
+import { ChevronDown, FileText, History, Pencil, Trash2, Wrench } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@/components/auth-provider";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { CloseServiceDialog } from "@/components/forms/lazy";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { errorMessage, openFile } from "@/lib/api";
 import { formatDate, formatKm, formatTimestamp } from "@/lib/format";
 import { FEEDBACK_CHECKS, rupees } from "@/lib/job-card";
-import { useServiceHistory } from "@/lib/queries";
+import { useDeleteServiceRecord, useServiceHistory } from "@/lib/queries";
 import type { ServiceHistoryItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +30,9 @@ function Entry({ item, subtitle }: { item: ServiceHistoryItem; subtitle?: string
   const [opening, setOpening] = useState(false);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const { user } = useAuth();
+  const remove = useDeleteServiceRecord();
   if (item.kind === "booking") {
     return (
       <li className="relative space-y-0.5 pl-5">
@@ -146,7 +151,23 @@ function Entry({ item, subtitle }: { item: ServiceHistoryItem; subtitle?: string
         <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setEditing(true)}>
           <Pencil /> Edit
         </Button>
+        {user?.role === "admin" && item.id != null && (
+          <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive" onClick={() => setDeleting(true)}>
+            <Trash2 /> Delete
+          </Button>
+        )}
       </div>
+      {deleting && item.id != null && (
+        <ConfirmDialog
+          open={deleting}
+          onOpenChange={setDeleting}
+          title="Delete this service?"
+          description={`The ${item.service_type} of ${formatDate(item.service_date)} and its job card PDF are deleted. Its booking becomes upcoming again (so it can be closed again), and the bike goes back to its due service.`}
+          confirmLabel="Delete service"
+          destructive
+          onConfirm={() => remove.mutate(item.id!)}
+        />
+      )}
       {editing && <CloseServiceDialog open={editing} onOpenChange={setEditing} record={item} subtitle={subtitle} />}
     </li>
   );
