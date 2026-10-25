@@ -8,6 +8,7 @@ import { CallProvider } from "@/components/call/call-provider";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { SiteHeader } from "@/components/layout/site-header";
 import { LiveProvider } from "@/components/live-provider";
+import { ShiftGate } from "@/components/shift-gate";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Spinner } from "@/components/ui/spinner";
 import { prefetchAllPages } from "@/lib/queries";
@@ -44,6 +45,8 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
+    // Outside working hours nothing below loads for staff (no data, no live feed).
+    <ShiftGate>
     <LiveProvider>
       <CallProvider>
         <SidebarProvider>
@@ -55,5 +58,6 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
         </SidebarProvider>
       </CallProvider>
     </LiveProvider>
+    </ShiftGate>
   );
 }

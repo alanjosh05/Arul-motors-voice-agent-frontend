@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertCircle, AudioLines, CalendarCheck, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth-provider";
@@ -18,6 +19,10 @@ const FEATURES = [
   { icon: CalendarCheck, title: "Bookings in one place", text: "Every date the agent confirms lands straight in your calendar." },
   { icon: ShieldCheck, title: "Built for the showroom", text: "Customers, bikes, service history and call outcomes, together." },
 ];
+
+
+// Client-only: whether the CRM is open depends on the time it's opened, not built.
+const ShiftNotice = dynamic(() => import("@/components/shift-gate").then((m) => m.ShiftNotice), { ssr: false });
 
 export default function LoginPage() {
   const { login, user, ready } = useAuth();
@@ -91,6 +96,7 @@ export default function LoginPage() {
           <div className="space-y-1.5">
             <h2 className="text-2xl font-semibold tracking-tight">Sign in</h2>
             <p className="text-sm text-muted-foreground">Welcome back. Use your showroom staff account.</p>
+            <ShiftNotice />
           </div>
           <form onSubmit={submit} className="space-y-6">
             {error && (
