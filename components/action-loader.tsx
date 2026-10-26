@@ -30,7 +30,7 @@ export function ActionLoader() {
   if (!shown) return null;
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-background/55 p-4 backdrop-blur-[3px] animate-in fade-in">
-      <div className="w-60 rounded-2xl border bg-background/95 p-3 pb-2 shadow-lg backdrop-blur animate-in fade-in zoom-in-95">
+      <div className="w-64 animate-in fade-in zoom-in-95">
         <BikeLoader label={shown} />
       </div>
     </div>
