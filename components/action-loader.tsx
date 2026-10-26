@@ -1,29 +1,36 @@
 "use client";
 
-// While an action is running (any save, delete or upload: a TanStack
-// mutation) for longer than DELAY_MS, the riding scooter shows at the bottom
-// of the screen. Quick actions finish before it appears, so it never flickers,
-// and it doesn't block the page.
-import { useIsMutating } from "@tanstack/react-query";
+// The riding scooter at the bottom of the screen, shown for every create,
+// read, update and delete: while an action runs (lib/activity.ts: saving,
+// deleting, uploading, opening a file) or a page's data is loading for the
+// first time. It stays at least MIN_MS so even quick actions are seen, and it
+// doesn't block the page.
+import { useIsFetching } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { BikeLoader } from "@/components/bike-loader";
+import { useActivity } from "@/lib/activity";
 
-const DELAY_MS = 350;
+const MIN_MS = 800;
 
 export function ActionLoader() {
-  const busy = useIsMutating() > 0;
-  const [show, setShow] = useState(false);
+  const action = useActivity();
+  // First loads only: data a page is waiting for and doesn't have yet (not
+  // background refreshes, and not the idle-time prefetch with no page on it).
+  const reading = useIsFetching({ predicate: (q) => q.state.data === undefined && q.getObserversCount() > 0 }) > 0;
+  const busy = action ?? (reading ? "Loading…" : null);
+  const [shown, setShown] = useState<string | null>(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => setShow(busy), busy ? DELAY_MS : 0);
+    // Show straight away; once done, keep it up to MIN_MS so it doesn't flash.
+    const timer = setTimeout(() => setShown(busy), busy ? 0 : MIN_MS);
     return () => clearTimeout(timer);
   }, [busy]);
 
-  if (!show) return null;
+  if (!shown) return null;
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-5 z-50 flex justify-center px-4">
       <div className="w-60 rounded-2xl border bg-background/95 p-3 pb-2 shadow-lg backdrop-blur animate-in fade-in slide-in-from-bottom-4">
-        <BikeLoader label="Working on it…" />
+        <BikeLoader label={shown} />
       </div>
     </div>
   );

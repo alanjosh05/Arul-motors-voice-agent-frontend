@@ -1,5 +1,6 @@
 // Thin fetch wrapper for the CRM API. The base URL is baked in at build time
 // (NEXT_PUBLIC_API_URL), because the CRM is a static site.
+import { describe, track } from "./activity";
 import { clearSession, getToken } from "./session";
 
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001").replace(/\/$/, "");
@@ -24,10 +25,16 @@ export function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-export async function api<T = unknown>(
+export function api<T = unknown>(
   path: string,
   options: { method?: string; body?: unknown; query?: Query } = {},
 ): Promise<T> {
+  // Writes show the loader (reads are covered by TanStack Query's loading).
+  const method = options.method ?? "GET";
+  return method === "GET" ? request<T>(path, options) : track(describe(method, path), () => request<T>(path, options));
+}
+
+async function request<T>(path: string, options: { method?: string; body?: unknown; query?: Query }): Promise<T> {
   const url = new URL(API_URL + path);
   for (const [key, value] of Object.entries(options.query ?? {})) {
     if (value !== undefined && value !== null && value !== "") url.searchParams.set(key, String(value));
@@ -67,7 +74,11 @@ export async function api<T = unknown>(
 }
 
 /** POST a multipart form (fields + files) to the API, e.g. a service report. */
-export async function apiUpload<T = unknown>(path: string, form: FormData, method: "POST" | "PATCH" = "POST"): Promise<T> {
+export function apiUpload<T = unknown>(path: string, form: FormData, method: "POST" | "PATCH" = "POST"): Promise<T> {
+  return track(describe(method, path), () => upload<T>(path, form, method));
+}
+
+async function upload<T>(path: string, form: FormData, method: "POST" | "PATCH"): Promise<T> {
   let response: Response;
   try {
     // No Content-Type: the browser sets the multipart boundary itself.
@@ -94,6 +105,10 @@ export async function apiUpload<T = unknown>(path: string, form: FormData, metho
  * file once it has downloaded. */
 export async function openFile(path: string): Promise<void> {
   const tab = window.open("", "_blank");
+  return track("Opening the file…", () => showIn(tab, path));
+}
+
+async function showIn(tab: Window | null, path: string): Promise<void> {
   try {
     const response = await fetch(API_URL + path, { headers: authHeaders(), signal: AbortSignal.timeout(120_000) });
     if (!response.ok) {
@@ -112,7 +127,11 @@ export async function openFile(path: string): Promise<void> {
 
 /** Download a file from the API (signed in), saving it under the server's
  * file name. Used for the Excel export and database backup. */
-export async function downloadFile(path: string, fallbackName: string): Promise<void> {
+export function downloadFile(path: string, fallbackName: string): Promise<void> {
+  return track("Preparing the download…", () => download(path, fallbackName));
+}
+
+async function download(path: string, fallbackName: string): Promise<void> {
   let response: Response;
   try {
     response = await fetch(API_URL + path, { headers: authHeaders(), signal: AbortSignal.timeout(120_000) });
