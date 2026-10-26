@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, AudioLines, CalendarCheck, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { AlertCircle, Eye, EyeOff } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -14,12 +14,6 @@ import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Spinner } from "@/components/ui/spinner";
 import { errorMessage } from "@/lib/api";
-
-const FEATURES = [
-  { icon: AudioLines, title: "AI voice follow-ups", text: "A Tanglish-speaking agent calls customers when their service is due." },
-  { icon: CalendarCheck, title: "Bookings in one place", text: "Every date the agent confirms lands straight in your calendar." },
-  { icon: ShieldCheck, title: "Built for the showroom", text: "Customers, bikes, service history and call outcomes, together." },
-];
 
 
 // Client-only: whether the CRM is open depends on the time it's opened, not built.
@@ -58,10 +52,6 @@ export default function LoginPage() {
         <div className="pointer-events-none absolute inset-0 opacity-[0.14] [background-image:radial-gradient(circle_at_1px_1px,currentColor_1px,transparent_0)] [background-size:22px_22px]" />
         <div className="pointer-events-none absolute -top-40 -right-40 size-[520px] rounded-full bg-white/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-48 -left-24 size-[460px] rounded-full bg-black/20 blur-3xl" />
-        <div className="relative shrink-0">
-          {/* The full logo already reads ARUL MOTORS · NAZARETH · YAMAHA. */}
-          <BrandMark full className="h-28 w-auto drop-shadow-md [@media(max-height:720px)]:h-20" />
-        </div>
         {/* Takes the height left over (none on very short screens), so the panel
             always fits the screen. */}
         <div className="relative flex min-h-0 flex-1 items-center">
@@ -77,12 +67,14 @@ export default function LoginPage() {
               The showroom CRM with a voice agent that follows up with every customer, books their service date and logs the outcome.
             </p>
           </div>
-          
         </div>
         <p className="relative shrink-0 text-xs text-white/55">© {new Date().getFullYear()} Arul Motors, Nazareth · Thoothukudi district</p>
       </aside>
 
-      <main className="flex items-center justify-center p-6 sm:p-10 lg:overflow-y-auto">
+      <main className="relative flex flex-col items-center justify-center p-6 sm:p-10 lg:overflow-y-auto">
+        {/* The full logo already reads ARUL MOTORS · NAZARETH · YAMAHA. In the
+            flow on phones (so it can't cover the form), pinned top-right above. */}
+        <BrandMark full className="mb-6 h-20 w-auto self-end drop-shadow-sm sm:absolute sm:top-6 sm:right-6 sm:mb-0 lg:top-8 lg:right-8 lg:h-24 [@media(max-height:720px)]:h-16" />
         <div className="w-full max-w-sm space-y-8">
           <div className="flex items-center gap-3">
             <BrandMark className="size-12" />
