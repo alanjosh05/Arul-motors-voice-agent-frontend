@@ -1,6 +1,6 @@
 "use client";
 
-// The riding scooter at the bottom of the screen, shown for every create,
+// The riding scooter in the centre of the screen, shown for every create,
 // read, update and delete: while an action runs (lib/activity.ts: saving,
 // deleting, uploading, opening a file) or a page's data is loading for the
 // first time. It stays at least MIN_MS so even quick actions are seen, and it
@@ -28,8 +28,8 @@ export function ActionLoader() {
 
   if (!shown) return null;
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-5 z-50 flex justify-center px-4">
-      <div className="w-60 rounded-2xl border bg-background/95 p-3 pb-2 shadow-lg backdrop-blur animate-in fade-in slide-in-from-bottom-4">
+    <div className="pointer-events-none fixed inset-0 z-50 grid place-items-center p-4">
+      <div className="w-60 rounded-2xl border bg-background/95 p-3 pb-2 shadow-lg backdrop-blur animate-in fade-in zoom-in-95">
         <BikeLoader label={shown} />
       </div>
     </div>

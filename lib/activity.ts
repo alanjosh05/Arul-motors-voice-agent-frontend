@@ -1,5 +1,5 @@
 // What the CRM is doing with the server right now (adding, saving, deleting,
-// uploading, opening a file), for the loader at the bottom of the screen
+// uploading, opening a file), for the loader in the centre of the screen
 // (components/action-loader.tsx). lib/api.ts reports every write here; reads
 // are tracked from TanStack Query instead.
 import { useSyncExternalStore } from "react";
