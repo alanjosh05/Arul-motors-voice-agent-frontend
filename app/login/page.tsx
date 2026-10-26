@@ -4,6 +4,7 @@ import { AlertCircle, AudioLines, CalendarCheck, Eye, EyeOff, ShieldCheck } from
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { LoginArt } from "@/components/art/login";
 import { useAuth } from "@/components/auth-provider";
 import { BrandMark } from "@/components/layout/app-sidebar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -61,6 +62,9 @@ export default function LoginPage() {
           {/* The full logo already reads ARUL MOTORS · NAZARETH · YAMAHA. */}
           <BrandMark full className="h-28 w-auto drop-shadow-md" />
         </div>
+        {/* Left out on short screens, where the panel's text needs the room. */}
+        <LoginArt className="relative mt-8 max-w-md drop-shadow-sm [@media(max-height:799px)]:hidden" />
+
         <div className="relative mt-auto max-w-md space-y-8">
           <div className="space-y-3">
             <h1 className="text-4xl leading-[1.1] font-semibold tracking-tight text-balance">
