@@ -55,7 +55,7 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
       <CallProvider>
         <IdleLogout />
         <ActionLoader />
-        <SidebarProvider>
+        <SidebarProvider defaultOpen={false}>
           <AppSidebar />
           <SidebarInset>
             <SiteHeader />

@@ -5,7 +5,8 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Calculator } from "@/components/layout/calculator";
 import { CommandMenu } from "@/components/layout/command-menu";
 import { ActiveCallsPill, LiveStatus, NotificationsBell } from "@/components/live/live-indicators";
@@ -23,6 +24,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
@@ -38,8 +41,27 @@ const THEMES = [
   { value: "system", label: "Auto (device)", icon: Monitor },
 ] as const;
 
+// Theme shortcut: Alt + Shift + D (⌥⇧D on a Mac) switches light / dark from
+// anywhere in the CRM. Matched on the physical key, since ⌥ changes the
+// character typed on a Mac.
+const isMac = () => typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
+
 function ThemeMenu() {
-  const { theme, setTheme } = useTheme();
+  const { theme, resolvedTheme, setTheme } = useTheme();
+  const [mac, setMac] = useState(false);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code !== "KeyD" || !e.altKey || !e.shiftKey || e.metaKey || e.ctrlKey || e.repeat) return;
+      e.preventDefault();
+      const next = resolvedTheme === "dark" ? "light" : "dark";
+      setTheme(next);
+      toast(next === "dark" ? "Dark theme" : "Light theme", { duration: 1500 });
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [resolvedTheme, setTheme]);
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -48,13 +70,18 @@ function ThemeMenu() {
           <Moon className="absolute scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-40">
+      <DropdownMenuContent align="end" className="w-48" onFocus={() => setMac(isMac())}>
         {THEMES.map(({ value, label, icon: Icon }) => (
           <DropdownMenuItem key={value} onClick={() => setTheme(value)}>
             <Icon /> {label}
             {(theme ?? "system") === value && <Check className="ml-auto" />}
           </DropdownMenuItem>
         ))}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}>
+          Switch light / dark
+          <DropdownMenuShortcut>{mac ? "⌥⇧D" : "Alt+Shift+D"}</DropdownMenuShortcut>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

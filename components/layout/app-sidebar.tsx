@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { NAV } from "@/components/layout/nav";
 import { pop, useAnime } from "@/lib/motion";
@@ -130,6 +130,9 @@ function UserMenu() {
   );
 }
 
+const HOVER_OPEN_MS = 150;
+const CLOSE_MS = 5000;
+
 /** A nav badge that pops when its count changes. */
 function NavBadge({ count }: { count: number }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -156,6 +159,9 @@ export function AppSidebar() {
         duration: 550,
         ease: "outExpo",
         delay: stagger(35, { start: 80 }),
+        // Hand the items back to the sidebar's own styles afterwards: a left-over
+        // inline opacity kept the group titles showing when it collapsed.
+        onComplete: (a) => utils.cleanInlineStyles(a),
       });
       let last: Element | null = null;
       const wiggle = (e: MouseEvent) => {
@@ -163,7 +169,8 @@ export function AppSidebar() {
         if (button === last) return;
         last = button;
         const icon = button?.querySelector("svg");
-        if (icon) animate(icon, { rotate: [0, -14, 10, 0], scale: [1, 1.2, 1], duration: 500, ease: "outQuad" });
+        if (icon)
+          animate(icon, { rotate: [0, -14, 10, 0], scale: [1, 1.2, 1], duration: 500, ease: "outQuad", onComplete: (a) => utils.cleanInlineStyles(a) });
       };
       const leave = () => (last = null);
       el.addEventListener("mouseover", wiggle);
@@ -185,7 +192,26 @@ export function AppSidebar() {
     [pathname],
   );
   const { data: stats } = useStats();
-  const { setOpenMobile } = useSidebar();
+  const { setOpenMobile, setPeek } = useSidebar();
+  // Collapsed by default: hovering opens it over the page; it closes CLOSE_MS
+  // after the pointer leaves (unless pinned open with ⌘B / the header button).
+  const timers = useRef<{ open?: ReturnType<typeof setTimeout>; close?: ReturnType<typeof setTimeout> }>({});
+  useEffect(() => {
+    const t = timers.current;
+    return () => {
+      clearTimeout(t.open);
+      clearTimeout(t.close);
+    };
+  }, []);
+  const hoverIn = () => {
+    clearTimeout(timers.current.close);
+    // A short pause, so passing over the sidebar doesn't open it.
+    timers.current.open = setTimeout(() => setPeek(true), HOVER_OPEN_MS);
+  };
+  const hoverOut = () => {
+    clearTimeout(timers.current.open);
+    timers.current.close = setTimeout(() => setPeek(false), CLOSE_MS);
+  };
   const queryClient = useQueryClient();
   const badges = {
     due: stats?.totals.due_this_week,
@@ -194,7 +220,7 @@ export function AppSidebar() {
   const groups = [...new Set(NAV.map((item) => item.group))];
 
   return (
-    <Sidebar collapsible="icon" variant="inset">
+    <Sidebar collapsible="icon" variant="inset" onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
