@@ -151,7 +151,7 @@ export function AppSidebar() {
   useAnime(
     contentRef,
     ({ animate, stagger, utils }, el) => {
-      const items = el.querySelectorAll("[data-sidebar=group-label], [data-sidebar=menu-item]");
+      const items = [...el.querySelectorAll<HTMLElement>("[data-sidebar=group-label], [data-sidebar=menu-item]")];
       utils.set(items, { opacity: 0 });
       animate(items, {
         opacity: [0, 1],
@@ -159,9 +159,15 @@ export function AppSidebar() {
         duration: 550,
         ease: "outExpo",
         delay: stagger(35, { start: 80 }),
-        // Hand the items back to the sidebar's own styles afterwards: a left-over
+        // Then hand the items back to the sidebar's own styles: a left-over
         // inline opacity kept the group titles showing when it collapsed.
-        onComplete: (a) => utils.cleanInlineStyles(a),
+        // (Not utils.cleanInlineStyles: it restores the opacity 0 set above.)
+        onComplete: () => {
+          for (const item of items) {
+            item.style.removeProperty("opacity");
+            item.style.removeProperty("transform");
+          }
+        },
       });
       let last: Element | null = null;
       const wiggle = (e: MouseEvent) => {
@@ -170,7 +176,7 @@ export function AppSidebar() {
         last = button;
         const icon = button?.querySelector("svg");
         if (icon)
-          animate(icon, { rotate: [0, -14, 10, 0], scale: [1, 1.2, 1], duration: 500, ease: "outQuad", onComplete: (a) => utils.cleanInlineStyles(a) });
+          animate(icon, { rotate: [0, -14, 10, 0], scale: [1, 1.2, 1], duration: 500, ease: "outQuad" });
       };
       const leave = () => (last = null);
       el.addEventListener("mouseover", wiggle);
