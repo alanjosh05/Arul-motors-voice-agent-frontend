@@ -1,7 +1,9 @@
 "use client";
 
-import { ArrowRight, CalendarClock, Wrench } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { BookingArt } from "@/components/art/booking";
+import { ServiceArt } from "@/components/art/service";
 import { CustomerAvatar } from "@/components/customer-avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,13 +17,11 @@ function Loading() {
   return <div className="space-y-3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12" />)}</div>;
 }
 
-function Nothing({ icon: Icon, title, text }: { icon: typeof Wrench; title: string; text: string }) {
+function Nothing({ art, title, text }: { art: React.ReactNode; title: string; text: string }) {
   return (
     <Empty className="h-[200px] border-0">
       <EmptyHeader>
-        <EmptyMedia variant="icon">
-          <Icon />
-        </EmptyMedia>
+        <EmptyMedia>{art}</EmptyMedia>
         <EmptyTitle>{title}</EmptyTitle>
         <EmptyDescription>{text}</EmptyDescription>
       </EmptyHeader>
@@ -69,7 +69,7 @@ export function UpcomingAndRecent({ data, isLoading }: { data?: DashboardStats; 
               ))}
             </ul>
           ) : (
-            <Nothing icon={CalendarClock} title="No upcoming bookings" text="Bookings made by staff or the agent show up here." />
+            <Nothing art={<BookingArt className="h-20" />} title="No upcoming bookings" text="Bookings made by staff or the agent show up here." />
           )}
         </CardContent>
       </Card>
@@ -119,7 +119,7 @@ export function UpcomingAndRecent({ data, isLoading }: { data?: DashboardStats; 
               ))}
             </ul>
           ) : (
-            <Nothing icon={Wrench} title="No services done yet" text="Close a booking with its job card to record a service." />
+            <Nothing art={<ServiceArt className="h-20" />} title="No services done yet" text="Close a booking with its job card to record a service." />
           )}
         </CardContent>
       </Card>

@@ -40,6 +40,8 @@ import { daysFromToday, formatDate, formatDay, formatKm, formatMobile, formatTim
 import { useCustomer, useDeleteCustomer, useDeleteVehicle, useServiceTypes, useUpdateCustomer } from "@/lib/queries";
 import type { CustomerDetail, Vehicle } from "@/lib/types";
 import { AppointmentDialog, CustomerDialog, LogCallDialog, VehicleDialog } from "@/components/forms/lazy";
+import { BookingArt } from "@/components/art/booking";
+import { CallArt } from "@/components/art/call";
 
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -334,6 +336,7 @@ function CustomerProfile() {
             ) : (
               <Empty className="py-12">
                 <EmptyHeader>
+                  <EmptyMedia><BookingArt /></EmptyMedia>
                   <EmptyTitle>No bookings yet</EmptyTitle>
                   <EmptyDescription>Bookings made by the agent or staff appear here.</EmptyDescription>
                 </EmptyHeader>
@@ -377,6 +380,7 @@ function CustomerProfile() {
               ) : (
                 <Empty className="py-8">
                   <EmptyHeader>
+                    <EmptyMedia><CallArt /></EmptyMedia>
                     <EmptyTitle>Not called yet</EmptyTitle>
                     <EmptyDescription>Start a call with the agent from the top of this page.</EmptyDescription>
                   </EmptyHeader>

@@ -22,6 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { formatTimestamp, OUTCOME_LABELS, timeAgo } from "@/lib/format";
 import { CALL_LOG_LIMIT, useCallCount, useCalls, useDeleteCall, useDeleteCalls } from "@/lib/queries";
 import type { CallLog, CallOutcome } from "@/lib/types";
+import { CallArt } from "@/components/art/call";
 
 /** ⋯ on a call (admins only): open the customer, delete the call. */
 function CallRowActions({ call }: { call: CallLog }) {
@@ -146,6 +147,7 @@ export default function CallsPage() {
         searchPlaceholder="Search customer, bike, notes…"
         initialSorting={[{ id: "created_at", desc: true }]}
         emptyTitle="No calls yet"
+        emptyArt={<CallArt />}
         emptyDescription="Start a call from Follow-ups or a customer's profile."
         globalFilterFn={(c, q) => `${c.customer_name} ${c.model ?? ""} ${c.registration_number ?? ""} ${c.notes ?? ""}`.toLowerCase().includes(q)}
         toolbar={

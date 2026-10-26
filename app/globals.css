@@ -86,6 +86,12 @@
     --sidebar-accent-foreground: oklch(0.2 0.02 264);
     --sidebar-border: oklch(0.92 0.006 264);
     --sidebar-ring: oklch(0.48 0.2 263);
+    /* Illustrations (components/art): unDraw's colours mapped to the theme */
+    --art-accent: var(--primary);
+    --art-paper: oklch(1 0 0);
+    --art-light: oklch(0.93 0.006 264);
+    --art-ink: oklch(0.24 0.02 280);
+    --art-ink-soft: oklch(0.36 0.03 280);
 }
 
 .dark {
@@ -122,6 +128,10 @@
     --sidebar-accent-foreground: oklch(0.97 0.004 264);
     --sidebar-border: oklch(1 0 0 / 8%);
     --sidebar-ring: oklch(0.66 0.17 262);
+    --art-paper: oklch(0.3 0.016 264);
+    --art-light: oklch(0.36 0.016 264);
+    --art-ink: oklch(0.5 0.03 280);
+    --art-ink-soft: oklch(0.6 0.03 280);
 }
 
 @layer base {

@@ -15,10 +15,12 @@ import { StatCard } from "@/components/stat-card";
 import { DueBadge, OutcomeBadge } from "@/components/status-badges";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDay, timeAgo } from "@/lib/format";
 import { useStats } from "@/lib/queries";
+import { BookingArt } from "@/components/art/booking";
+import { CallArt } from "@/components/art/call";
 
 // Charts load in their own chunk after the KPIs render.
 const chartLoading = () => <Skeleton className="h-[240px] w-full rounded-lg" />;
@@ -128,6 +130,7 @@ export default function DashboardPage() {
             ) : totalCalls30 === 0 ? (
               <Empty className="h-[240px] border-0">
                 <EmptyHeader>
+                  <EmptyMedia><CallArt className="h-24" /></EmptyMedia>
                   <EmptyTitle>No calls yet</EmptyTitle>
                   <EmptyDescription>Outcomes appear here once the agent starts calling.</EmptyDescription>
                 </EmptyHeader>
@@ -189,6 +192,7 @@ export default function DashboardPage() {
             ) : (
               <Empty className="h-[200px] border-0">
                 <EmptyHeader>
+                  <EmptyMedia><BookingArt className="h-20" /></EmptyMedia>
                   <EmptyTitle>No bikes booked for today</EmptyTitle>
                   <EmptyDescription>Bookings the agent confirms show up here.</EmptyDescription>
                 </EmptyHeader>
@@ -278,6 +282,7 @@ export default function DashboardPage() {
             ) : (
               <Empty className="h-[200px] border-0">
                 <EmptyHeader>
+                  <EmptyMedia><CallArt className="h-24" /></EmptyMedia>
                   <EmptyTitle>No calls yet</EmptyTitle>
                 </EmptyHeader>
               </Empty>

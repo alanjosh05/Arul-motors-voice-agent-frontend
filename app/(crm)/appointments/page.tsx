@@ -15,6 +15,7 @@ import { formatDay, relativeDay, todayISO } from "@/lib/format";
 import { useAppointments } from "@/lib/queries";
 import type { Appointment } from "@/lib/types";
 import { AppointmentDialog } from "@/components/forms/lazy";
+import { BookingArt } from "@/components/art/booking";
 
 const columns: ColumnDef<Appointment>[] = [
   {
@@ -120,6 +121,7 @@ export default function AppointmentsPage() {
         loading={isLoading}
         searchPlaceholder="Search customer, bike, booking…"
         initialSorting={[{ id: "appointment_date", desc: tab !== "upcoming" && tab !== "today" }]}
+        emptyArt={<BookingArt />}
         emptyTitle={tab === "today" ? "No bikes booked for today" : "No bookings here"}
         globalFilterFn={(a, q) => `${a.customer_name} ${a.model} ${a.registration_number} ${a.id} ${a.service_type} ${a.notes ?? ""}`.toLowerCase().includes(q)}
       />

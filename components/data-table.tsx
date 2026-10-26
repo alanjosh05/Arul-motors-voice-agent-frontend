@@ -58,6 +58,7 @@ export function DataTable<T>({
   onRowHover,
   emptyTitle = "Nothing here yet",
   emptyDescription,
+  emptyArt,
   pageSize = 10,
   initialSorting = [],
   globalFilterFn,
@@ -72,6 +73,8 @@ export function DataTable<T>({
   onRowHover?: (row: T) => void;
   emptyTitle?: string;
   emptyDescription?: string;
+  /** An illustration for the empty list (components/art). */
+  emptyArt?: React.ReactNode;
   pageSize?: number;
   initialSorting?: SortingState;
   globalFilterFn?: (row: T, query: string) => boolean;
@@ -166,9 +169,13 @@ export function DataTable<T>({
                 <TableCell colSpan={columns.length}>
                   <Empty className="border-0 py-10">
                     <EmptyHeader>
-                      <EmptyMedia variant="icon">
-                        <Inbox />
-                      </EmptyMedia>
+                      {emptyArt && !globalFilter ? (
+                        <EmptyMedia>{emptyArt}</EmptyMedia>
+                      ) : (
+                        <EmptyMedia variant="icon">
+                          <Inbox />
+                        </EmptyMedia>
+                      )}
                       <EmptyTitle>{globalFilter ? "No matches" : emptyTitle}</EmptyTitle>
                       {(globalFilter || emptyDescription) && (
                         <EmptyDescription>

@@ -1,8 +1,9 @@
 "use client";
 
-import { ChevronDown, FileText, History, Pencil, Trash2, Wrench } from "lucide-react";
+import { ChevronDown, FileText, History, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ServiceArt } from "@/components/art/service";
 import { useAuth } from "@/components/auth-provider";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { CloseServiceDialog } from "@/components/forms/lazy";
@@ -185,9 +186,10 @@ export function ServiceHistory({ vehicleId, subtitle }: { vehicleId: number; sub
       {isLoading ? (
         <Skeleton className="h-14 w-full" />
       ) : items.length === 0 ? (
-        <p className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Wrench className="size-4" /> No services yet. Close a booking to record one.
-        </p>
+        <div className="flex flex-col items-center gap-2 py-2 text-center">
+          <ServiceArt className="h-20" />
+          <p className="text-sm text-muted-foreground">No services yet. Close a booking to record one.</p>
+        </div>
       ) : (
         // Every service, newest first, scrolling inside the card so the card
         // keeps its height however many services (or open details) there are.
