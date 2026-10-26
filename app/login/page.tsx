@@ -77,28 +77,19 @@ export default function LoginPage() {
               The showroom CRM with a voice agent that follows up with every customer, books their service date and logs the outcome.
             </p>
           </div>
-          <ul className="space-y-4 [@media(max-height:720px)]:space-y-2.5">
-            {FEATURES.map(({ icon: Icon, title, text }) => (
-              <li key={title} className="flex gap-3">
-                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-white/12 ring-1 ring-white/15">
-                  <Icon className="size-4.5" />
-                </span>
-                <div>
-                  <p className="font-medium">{title}</p>
-                  <p className="text-sm text-white/70 [@media(max-height:640px)]:hidden">{text}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
+          
         </div>
         <p className="relative shrink-0 text-xs text-white/55">© {new Date().getFullYear()} Arul Motors, Nazareth · Thoothukudi district</p>
       </aside>
 
       <main className="flex items-center justify-center p-6 sm:p-10 lg:overflow-y-auto">
         <div className="w-full max-w-sm space-y-8">
-          <div className="flex items-center gap-3 lg:hidden">
-            <BrandMark className="size-10" />
-            <span className="font-semibold tracking-tight">Arul Motors CRM</span>
+          <div className="flex items-center gap-3">
+            <BrandMark className="size-12" />
+            <div className="leading-tight">
+              <p className="font-semibold tracking-tight">Arul Motors CRM</p>
+              <p className="text-xs text-muted-foreground">Yamaha · Nazareth</p>
+            </div>
           </div>
           <div className="space-y-1.5">
             <h2 className="text-2xl font-semibold tracking-tight">Sign in</h2>

@@ -4,6 +4,7 @@ import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persist
 import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { ThemeProvider } from "next-themes";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { AuthProvider } from "@/components/auth-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -13,6 +14,8 @@ import { QUERY_CACHE_KEY } from "@/lib/session";
 const CACHE_MAX_AGE = 12 * 60 * 60 * 1000; // as long as a sign-in lasts
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  // The sign-in page is always light; the CRM follows the chosen theme.
+  const forcedTheme = usePathname()?.startsWith("/login") ? "light" : undefined;
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -34,7 +37,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     }),
   );
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem forcedTheme={forcedTheme} disableTransitionOnChange>
       <PersistQueryClientProvider
         client={queryClient}
         persistOptions={{
