@@ -39,7 +39,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { daysFromToday, formatDate, formatDay, formatKm, formatMobile, formatTimestamp, parseTimestamp } from "@/lib/format";
 import { useCustomer, useDeleteCustomer, useDeleteVehicle, useServiceTypes, useUpdateCustomer } from "@/lib/queries";
 import type { CustomerDetail, Vehicle } from "@/lib/types";
-import { AppointmentDialog, CustomerDialog, LogCallDialog, VehicleDialog } from "@/components/forms/lazy";
+import { AppointmentDialog, CloseServiceDialog, CustomerDialog, LogCallDialog, VehicleDialog } from "@/components/forms/lazy";
 import { BookingArt } from "@/components/art/booking";
 import { CallArt } from "@/components/art/call";
 
@@ -53,7 +53,7 @@ function Detail({ label, children }: { label: string; children: React.ReactNode 
 }
 
 function BikeCard({ vehicle, customer }: { vehicle: Vehicle; customer: CustomerDetail }) {
-  const [dialog, setDialog] = useState<"edit" | "book" | "delete" | null>(null);
+  const [dialog, setDialog] = useState<"edit" | "book" | "service" | "delete" | null>(null);
   const remove = useDeleteVehicle();
   const booking = customer.appointments.find((a) => a.vehicle_id === vehicle.id && a.state === "upcoming");
   const { data: types } = useServiceTypes();
@@ -85,6 +85,10 @@ function BikeCard({ vehicle, customer }: { vehicle: Vehicle; customer: CustomerD
               <DropdownMenuItem onClick={() => setDialog("book")}>
                 <CalendarPlus /> Book service
               </DropdownMenuItem>
+              {/* A walk-in: the bike came in without a booking. */}
+              <DropdownMenuItem disabled={!!booking} onClick={() => setDialog("service")}>
+                <Wrench /> Record service (walk-in)
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setDialog("edit")}>
                 <Pencil /> Edit bike
               </DropdownMenuItem>
@@ -98,7 +102,14 @@ function BikeCard({ vehicle, customer }: { vehicle: Vehicle; customer: CustomerD
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-3 gap-3">
-          <Detail label="Purchased">{formatDate(vehicle.purchase_date, "d MMM yy")}</Detail>
+          {vehicle.bought_elsewhere ? (
+            <Detail label="Bought from">
+              <span className="block truncate" title={vehicle.dealer_name ?? undefined}>{vehicle.dealer_name || "Another dealer"}</span>
+              {vehicle.purchase_date && <span className="text-xs text-muted-foreground">{formatDate(vehicle.purchase_date, "d MMM yy")}</span>}
+            </Detail>
+          ) : (
+            <Detail label="Purchased">{vehicle.purchase_date ? formatDate(vehicle.purchase_date, "d MMM yy") : "Not known"}</Detail>
+          )}
           <Detail label="Odometer">{formatKm(vehicle.odometer_km)}</Detail>
           <Detail label="Last service">{vehicle.last_service_date ? formatDate(vehicle.last_service_date, "d MMM yy") : "Never"}</Detail>
         </div>
@@ -124,11 +135,19 @@ function BikeCard({ vehicle, customer }: { vehicle: Vehicle; customer: CustomerD
           <p className="text-xs text-muted-foreground">
             Due {formatDay(vehicle.next_service_date)} · {step < free.length ? `${step} of ${free.length} free services done` : "Free services completed"}
           </p>
+          {!booking && (
+            <Button variant="outline" size="sm" className="mt-1 w-full" onClick={() => setDialog("service")}>
+              <Wrench /> Record service (walk-in)
+            </Button>
+          )}
         </div>
         <ServiceHistory vehicleId={vehicle.id} subtitle={`${customer.name} · ${vehicle.model} ${vehicle.registration_number}`} />
       </CardContent>
       {dialog === "edit" && <VehicleDialog open={dialog === "edit"} onOpenChange={(o) => !o && setDialog(null)} vehicle={vehicle} />}
       {dialog === "book" && <AppointmentDialog open={dialog === "book"} onOpenChange={(o) => !o && setDialog(null)} customerId={customer.id} vehicleId={vehicle.id} />}
+      {dialog === "service" && (
+        <CloseServiceDialog open={dialog === "service"} onOpenChange={(o) => !o && setDialog(null)} walkIn={vehicle} subtitle={customer.name} />
+      )}
       {dialog === "delete" && <ConfirmDialog
         open={dialog === "delete"}
         onOpenChange={(o) => !o && setDialog(null)}

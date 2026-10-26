@@ -44,6 +44,7 @@ export function useActivity(): string | null {
 const SUBJECTS: [RegExp, string][] = [
   [/^\/api\/job-card\/extract/, "Reading the job card…"],
   [/^\/api\/appointments\/\d+\/close/, "Closing the service…"],
+  [/^\/api\/vehicles\/\d+\/services/, "Recording the service…"],
   [/^\/api\/appointments\/\d+\/cancel/, "Cancelling the booking…"],
   [/^\/api\/service-types\/\d+\/move/, "Reordering…"],
   [/^\/api\/auth\/password/, "Changing the password…"],

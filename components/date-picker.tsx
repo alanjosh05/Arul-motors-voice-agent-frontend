@@ -17,6 +17,7 @@ export function DatePicker({
   placeholder = "Pick a date",
   id,
   invalid,
+  clearLabel,
 }: {
   value?: string | null;
   onChange: (value: string | null) => void;
@@ -25,6 +26,8 @@ export function DatePicker({
   placeholder?: string;
   id?: string;
   invalid?: boolean;
+  /** Show a button under the calendar that empties the date, e.g. "Not known". */
+  clearLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
   const disabled = [
@@ -56,6 +59,22 @@ export function DatePicker({
             setOpen(false);
           }}
         />
+        {clearLabel && (
+          <div className="border-t p-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="w-full"
+              onClick={() => {
+                onChange(null);
+                setOpen(false);
+              }}
+            >
+              {clearLabel}
+            </Button>
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );

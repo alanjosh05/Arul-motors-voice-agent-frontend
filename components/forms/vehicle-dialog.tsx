@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { DatePicker } from "@/components/date-picker";
+import { BoughtFromField } from "@/components/forms/bought-from-field";
 import { FormDialog } from "@/components/forms/form-dialog";
 import { ModelPicker } from "@/components/model-picker";
 import { useAutosaveDraft, useFormDraft } from "@/lib/drafts";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { todayISO } from "@/lib/format";
@@ -31,7 +32,14 @@ export function VehicleDialog({
   const draft = useFormDraft(draftKey);
   const [model, setModel] = useState(draft.get("model", vehicle?.model ?? ""));
   const [registration, setRegistration] = useState(draft.get("registration", vehicle?.registration_number ?? ""));
-  const [purchase, setPurchase] = useState<string | null>(draft.get("purchase", vehicle?.purchase_date ?? todayISO()));
+  const [elsewhere, setElsewhere] = useState<boolean>(draft.get("elsewhere", !!vehicle?.bought_elsewhere));
+  const [dealer, setDealer] = useState(draft.get("dealer", vehicle?.dealer_name ?? ""));
+  const [purchase, setPurchase] = useState<string | null>(draft.get("purchase", editing ? vehicle.purchase_date : todayISO()));
+  const chooseElsewhere = (value: boolean) => {
+    setElsewhere(value);
+    // A new bike from another dealer: purchase date usually not known.
+    if (!editing) setPurchase(value ? null : todayISO());
+  };
   const [lastService, setLastService] = useState<string | null>(draft.get("lastService", vehicle?.last_service_date ?? null));
   const [odometer, setOdometer] = useState(draft.get("odometer", vehicle?.odometer_km != null ? String(vehicle.odometer_km) : ""));
   const [frame, setFrame] = useState(draft.get("frame", vehicle?.frame_number ?? ""));
@@ -39,7 +47,7 @@ export function VehicleDialog({
   const [nextDate, setNextDate] = useState<string | null>(draft.get("nextDate", vehicle?.next_service_date ?? null));
   const serviceTypes = useServiceTypeNames();
   const [nextType, setNextType] = useState(draft.get("nextType", vehicle?.next_service_type ?? serviceTypes[0]));
-  useAutosaveDraft(draftKey, { model, registration, purchase, lastService, odometer, frame, engine, nextDate, nextType });
+  useAutosaveDraft(draftKey, { model, registration, elsewhere, dealer, purchase, lastService, odometer, frame, engine, nextDate, nextType });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const add = useAddVehicle();
   const update = useUpdateVehicle();
@@ -55,7 +63,10 @@ export function VehicleDialog({
     const fields = {
       model: model.trim(),
       registration_number: registration,
-      purchase_date: purchase,
+      // Editing: "" clears it (not known).
+      purchase_date: editing ? (purchase ?? "") : purchase,
+      bought_elsewhere: elsewhere,
+      dealer_name: elsewhere ? dealer.trim() : "",
       last_service_date: lastService,
       odometer_km: odometer ? Number(odometer) : null,
       next_service_date: nextDate!,
@@ -98,9 +109,10 @@ export function VehicleDialog({
             <Input id="v-reg" value={registration} onChange={(e) => setRegistration(e.target.value.toUpperCase())} placeholder="TN 69 AB 1234" className="font-mono uppercase" aria-invalid={!!errors.registration} />
             <FieldError>{errors.registration}</FieldError>
           </Field>
+          <BoughtFromField idPrefix="v" elsewhere={elsewhere} onElsewhereChange={chooseElsewhere} dealer={dealer} onDealerChange={setDealer} />
           <Field>
             <FieldLabel>Purchase date</FieldLabel>
-            <DatePicker value={purchase} onChange={setPurchase} max={todayISO()} />
+            <DatePicker value={purchase} onChange={setPurchase} max={todayISO()} placeholder="Not known" clearLabel="Not known" />
           </Field>
           <Field>
             <FieldLabel>Last service</FieldLabel>
@@ -126,6 +138,9 @@ export function VehicleDialog({
           <Field data-invalid={!!errors.nextDate}>
             <FieldLabel>Next service due</FieldLabel>
             <DatePicker value={nextDate} onChange={setNextDate} invalid={!!errors.nextDate} />
+            {elsewhere && !editing && (
+              <FieldDescription>In the workshop now? Pick today and the service it came for, then use “Record service” on the bike.</FieldDescription>
+            )}
             <FieldError>{errors.nextDate}</FieldError>
           </Field>
           <Field className="sm:col-span-2">

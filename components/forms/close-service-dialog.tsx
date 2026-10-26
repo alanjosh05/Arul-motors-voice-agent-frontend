@@ -22,12 +22,13 @@ import {
   nextScheduledType,
   useCloseService,
   useExtractJobCard,
+  useRecordWalkInService,
   useUpdateServiceRecord,
   useServiceTypeNames,
   useServiceTypes,
   useVehicles,
 } from "@/lib/queries";
-import type { Appointment, JobCardFeedback, ServiceHistoryItem } from "@/lib/types";
+import type { Appointment, JobCardFeedback, ServiceHistoryItem, Vehicle } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_INTERVAL_DAYS = 90;
@@ -59,18 +60,24 @@ function Section({ title, children }: { title: string; children: React.ReactNode
  * Saves a maintenance record and moves the bike on.
  *
  * With `record` instead of `appointment` it edits a closed service: same
- * form, opened with what was saved; a new PDF is optional (replaces it). */
+ * form, opened with what was saved; a new PDF is optional (replaces it).
+ *
+ * With `walkIn` (a bike) it records a service done without a booking, e.g. a
+ * bike bought from another dealer in for its 3rd free service: staff pick
+ * the service it came for, as on the job card. */
 export function CloseServiceDialog({
   open,
   onOpenChange,
   appointment,
   record,
+  walkIn,
   subtitle,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   appointment?: Appointment;
   record?: ServiceHistoryItem;
+  walkIn?: Vehicle;
   /** Who/what the edited record is for, e.g. "Karthik · Yamaha FZ-S TN 69 AB 1234". */
   subtitle?: string;
 }) {
@@ -79,18 +86,21 @@ export function CloseServiceDialog({
   const { data: vehicles } = useVehicles();
   const serviceTypes = useServiceTypeNames();
   const close = useCloseService();
+  const recordWalkIn = useRecordWalkInService();
   const update = useUpdateServiceRecord();
   const extract = useExtractJobCard();
   const fileInput = useRef<HTMLInputElement>(null);
-  const bike = vehicles?.find((v) => v.id === (record?.vehicle_id ?? appointment?.vehicle_id));
+  const bike = walkIn ?? vehicles?.find((v) => v.id === (record?.vehicle_id ?? appointment?.vehicle_id));
 
   // Mounted only while open. Everything typed comes back after an accidental
   // close; a chosen file can't be kept by the browser, so the PDF is re-attached.
-  const draftKey = editing ? `edit-service:${record.id}` : `close:${appointment?.id ?? ""}`;
+  const draftKey = editing ? `edit-service:${record.id}` : walkIn ? `walk-in:${walkIn.id}` : `close:${appointment?.id ?? ""}`;
   const draft = useFormDraft(draftKey);
   const today = todayISO();
   const booked = appointment?.appointment_date ?? today;
-  const bookedType = record?.service_type ?? appointment?.service_type ?? "";
+  // Walk-in: start from the service the bike is due; staff change it to the
+  // one it came for.
+  const bookedType = record?.service_type ?? appointment?.service_type ?? walkIn?.next_service_type ?? "";
   const isFree = types?.find((t) => t.name === bookedType)?.is_free;
   const r = record; // edit: open with what was saved
 
@@ -233,7 +243,7 @@ export function CloseServiceDialog({
     if (!next.file) readCard(picked);
   };
 
-  if (!appointment && !record) return null;
+  if (!appointment && !record && !walkIn) return null;
 
   async function submit() {
     const next: Record<string, string> = {};
@@ -255,6 +265,7 @@ export function CloseServiceDialog({
       next.work = "Tick the jobs done, add parts or labour, or describe the work.";
     if (!file && !editing) next.file = errors.file ?? "Attach the scanned job card (PDF).";
     if (nextDate && deliveredDate && nextDate <= deliveredDate) next.nextDate = "Must be after this service.";
+    if (!serviceType) next.serviceType = "Pick the service that was done.";
     setErrors(next);
     if (Object.keys(next).length) return;
 
@@ -287,6 +298,7 @@ export function CloseServiceDialog({
     }
     if (file) form.append("report", file, file.name); // editing: optional, replaces the job card
     if (editing) await update.mutateAsync({ id: record.id!, form });
+    else if (walkIn) await recordWalkIn.mutateAsync({ vehicleId: walkIn.id, form });
     else await close.mutateAsync({ id: appointment!.id, form });
     draft.clear();
     onOpenChange(false);
@@ -299,14 +311,16 @@ export function CloseServiceDialog({
       open={open}
       onOpenChange={onOpenChange}
       draft={draft}
-      title={editing ? "Edit service" : "Close service"}
+      title={editing ? "Edit service" : walkIn ? "Record service" : "Close service"}
       description={
         editing
           ? `${subtitle ?? ""}${record.job_card_no ? ` · job card ${record.job_card_no}` : ""}`
-          : `${appointment!.customer_name ?? ""} · ${appointment!.model ?? ""} ${appointment!.registration_number ?? ""} · booked ${formatDay(appointment!.appointment_date)}`
+          : walkIn
+            ? `${subtitle ?? walkIn.customer_name ?? ""} · ${walkIn.model} ${walkIn.registration_number} · walk-in, no booking`
+            : `${appointment!.customer_name ?? ""} · ${appointment!.model ?? ""} ${appointment!.registration_number ?? ""} · booked ${formatDay(appointment!.appointment_date)}`
       }
-      submitLabel={editing ? "Save changes" : "Close service"}
-      pending={close.isPending || update.isPending || extract.isPending}
+      submitLabel={editing ? "Save changes" : walkIn ? "Record service" : "Close service"}
+      pending={close.isPending || recordWalkIn.isPending || update.isPending || extract.isPending}
       onSubmit={() => submit().catch(() => {})}
       xl
     >
@@ -396,14 +410,16 @@ export function CloseServiceDialog({
                 </SelectContent>
               </Select>
             </Field>
-            <Field>
-              <FieldLabel>Service</FieldLabel>
+            <Field data-invalid={!!errors.serviceType}>
+              <FieldLabel>{walkIn ? "Service it came for" : "Service"}</FieldLabel>
               <Select value={serviceType} onValueChange={setServiceType}>
-                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full" aria-invalid={!!errors.serviceType}><SelectValue placeholder="Pick the service" /></SelectTrigger>
                 <SelectContent>
                   {typeOptions(serviceType).map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                 </SelectContent>
               </Select>
+              {walkIn && <FieldDescription>As on the job card, e.g. Third free service. Any service can come first.</FieldDescription>}
+              <FieldError>{errors.serviceType}</FieldError>
             </Field>
             <Field data-invalid={!!errors.receivedDate}>
               <FieldLabel>Received on</FieldLabel>

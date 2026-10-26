@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { DatePicker } from "@/components/date-picker";
+import { BoughtFromField } from "@/components/forms/bought-from-field";
 import { FormDialog } from "@/components/forms/form-dialog";
 import { ModelPicker } from "@/components/model-picker";
 import { useAutosaveDraft, useFormDraft } from "@/lib/drafts";
@@ -36,11 +37,17 @@ export function CustomerDialog({
   const [alternate, setAlternate] = useState(draft.get("alternate", customer?.alternate_mobile ?? ""));
   const [model, setModel] = useState(draft.get("model", ""));
   const [registration, setRegistration] = useState(draft.get("registration", ""));
+  const [elsewhere, setElsewhere] = useState<boolean>(draft.get("elsewhere", false));
+  const [dealer, setDealer] = useState(draft.get("dealer", ""));
   const [purchase, setPurchase] = useState<string | null>(draft.get("purchase", todayISO()));
+  const chooseElsewhere = (value: boolean) => {
+    setElsewhere(value);
+    setPurchase(value ? null : todayISO()); // usually not known for another dealer
+  };
   const [nextDate, setNextDate] = useState<string | null>(draft.get("nextDate", null));
   const serviceTypes = useServiceTypeNames();
   const [nextType, setNextType] = useState(draft.get("nextType", serviceTypes[0]));
-  useAutosaveDraft(draftKey, { name, mobile, alternate, model, registration, purchase, nextDate, nextType });
+  useAutosaveDraft(draftKey, { name, mobile, alternate, model, registration, elsewhere, dealer, purchase, nextDate, nextType });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const create = useCreateCustomer();
@@ -59,7 +66,7 @@ export function CustomerDialog({
     if (withBike) {
       if (!model.trim()) next.model = "Enter the bike model.";
       if (!registration.trim()) next.registration = "Enter the registration number.";
-      if (!nextDate) next.nextDate = "Pick when the first service is due.";
+      if (!nextDate) next.nextDate = "Pick when its next service is due.";
     }
     setErrors(next);
     if (Object.keys(next).length) return;
@@ -78,6 +85,8 @@ export function CustomerDialog({
         model: model.trim(),
         registration_number: registration,
         purchase_date: purchase,
+        bought_elsewhere: elsewhere,
+        dealer_name: elsewhere ? dealer.trim() || null : null,
         next_service_date: nextDate!,
         next_service_type: nextType,
       });
@@ -125,7 +134,7 @@ export function CustomerDialog({
         </div>
         {!editing && (
           <>
-            <FieldSeparator>First bike (optional)</FieldSeparator>
+            <FieldSeparator>Bike (optional)</FieldSeparator>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field data-invalid={!!errors.model}>
                 <FieldLabel htmlFor="c-model">Model</FieldLabel>
@@ -137,12 +146,13 @@ export function CustomerDialog({
                 <Input id="c-reg" value={registration} onChange={(e) => setRegistration(e.target.value.toUpperCase())} placeholder="TN 69 AB 1234" className="font-mono uppercase" aria-invalid={!!errors.registration} />
                 <FieldError>{errors.registration}</FieldError>
               </Field>
+              <BoughtFromField idPrefix="c" elsewhere={elsewhere} onElsewhereChange={chooseElsewhere} dealer={dealer} onDealerChange={setDealer} />
               <Field>
                 <FieldLabel>Purchase date</FieldLabel>
-                <DatePicker value={purchase} onChange={setPurchase} max={todayISO()} />
+                <DatePicker value={purchase} onChange={setPurchase} max={todayISO()} placeholder="Not known" clearLabel="Not known" />
               </Field>
               <Field data-invalid={!!errors.nextDate}>
-                <FieldLabel>First service due</FieldLabel>
+                <FieldLabel>{elsewhere ? "Next service due" : "First service due"}</FieldLabel>
                 <DatePicker value={nextDate} onChange={setNextDate} invalid={!!errors.nextDate} />
                 <FieldError>{errors.nextDate}</FieldError>
               </Field>

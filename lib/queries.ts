@@ -301,13 +301,20 @@ export interface VehicleSaleInput {
   odometer_km?: number | null;
   last_service_date?: string | null;
   alternate_mobile?: string | null; // only used when the sale creates the customer
+  bought_elsewhere?: boolean;
+  dealer_name?: string | null;
 }
 
 export const useAddVehicle = () =>
   useCrmMutation((body: VehicleSaleInput) => api("/api/vehicles", { method: "POST", body }));
 
 export const useUpdateVehicle = () =>
-  useCrmMutation(({ id, ...body }: Partial<Omit<Vehicle, "id">> & { id: number }) =>
+  // "" for purchase_date / dealer_name clears it (e.g. purchase date not known).
+  useCrmMutation(({ id, ...body }: Partial<Omit<Vehicle, "id" | "purchase_date" | "dealer_name">> & {
+    id: number;
+    purchase_date?: string | null;
+    dealer_name?: string | null;
+  }) =>
     api(`/api/vehicles/${id}`, { method: "PATCH", body }),
   );
 
@@ -378,6 +385,14 @@ export const useCloseService = () =>
   useCrmMutation(({ id, form }: { id: string; form: FormData }) =>
     apiUpload<{ message: string; id: number }>(`/api/appointments/${id}/close`, form),
     { success: "Service closed and recorded" },
+  );
+
+/** A service done without a booking (a walk-in, e.g. a bike bought elsewhere
+ * in for its 3rd free service), recorded with its job card. */
+export const useRecordWalkInService = () =>
+  useCrmMutation(({ vehicleId, form }: { vehicleId: number; form: FormData }) =>
+    apiUpload<{ message: string; id: number }>(`/api/vehicles/${vehicleId}/services`, form),
+    { success: "Service recorded" },
   );
 
 /** Admins: delete one call log entry (gone from the list at once). */

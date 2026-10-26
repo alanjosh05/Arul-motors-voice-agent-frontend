@@ -34,6 +34,9 @@ export interface Vehicle {
   next_service_type: string;
   frame_number?: string | null;
   engine_number?: string | null;
+  /** Bought from another dealer (serviced here); purchase date often unknown. */
+  bought_elsewhere?: number | boolean;
+  dealer_name?: string | null;
   customer_name?: string;
   mobile_number?: string;
 }

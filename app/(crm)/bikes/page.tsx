@@ -91,7 +91,19 @@ const columns: ColumnDef<Vehicle>[] = [
   {
     accessorKey: "purchase_date",
     header: ({ column }) => <SortHeader column={column} title="Purchased" />,
-    cell: ({ row }) => <span className="tabular text-sm">{formatDate(row.original.purchase_date)}</span>,
+    cell: ({ row }) => {
+      const v = row.original;
+      return (
+        <div className="space-y-0.5">
+          <span className="tabular block text-sm">{v.purchase_date ? formatDate(v.purchase_date) : <span className="text-muted-foreground">Not known</span>}</span>
+          {!!v.bought_elsewhere && (
+            <span className="block max-w-36 truncate text-xs text-muted-foreground" title={v.dealer_name ?? undefined}>
+              {v.dealer_name || "Another dealer"}
+            </span>
+          )}
+        </div>
+      );
+    },
   },
   {
     accessorKey: "odometer_km",
@@ -142,7 +154,7 @@ export default function BikesPage() {
         searchPlaceholder="Search model, registration, owner…"
         initialSorting={[{ id: "next_service_date", desc: false }]}
         emptyTitle="No bikes yet"
-        emptyDescription="Record a bike sale to start service follow-ups."
+        emptyDescription="Add a bike, sold here or bought from another dealer, to start service follow-ups."
         globalFilterFn={(v, q) =>
           `${v.model} ${v.registration_number} ${v.registration_number.replace(/\s/g, "")} ${v.customer_name} ${v.mobile_number}`.toLowerCase().includes(q)
         }
