@@ -11,9 +11,10 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { LiveProvider } from "@/components/live-provider";
 import { ShiftGate } from "@/components/shift-gate";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { Spinner } from "@/components/ui/spinner";
 import { prefetchAllPages } from "@/lib/queries";
 import { AnimateIn } from "@/components/motion/animate-in";
+import { ActionLoader } from "@/components/action-loader";
+import { BikeLoader } from "@/components/bike-loader";
 
 export default function CrmLayout({ children }: { children: React.ReactNode }) {
   const { user, ready } = useAuth();
@@ -42,7 +43,7 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
   if (!ready || !user) {
     return (
       <div className="grid min-h-svh place-items-center">
-        <Spinner className="size-6 text-muted-foreground" />
+        <BikeLoader className="w-56 sm:w-72" />
       </div>
     );
   }
@@ -53,6 +54,7 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
     <LiveProvider>
       <CallProvider>
         <IdleLogout />
+        <ActionLoader />
         <SidebarProvider>
           <AppSidebar />
           <SidebarInset>

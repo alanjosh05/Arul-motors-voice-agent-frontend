@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { Spinner } from "@/components/ui/spinner";
+import { BikeLoader } from "@/components/bike-loader";
 import { useAuth } from "@/components/auth-provider";
 
 export default function Home() {
@@ -13,7 +13,7 @@ export default function Home() {
   }, [ready, user, router]);
   return (
     <div className="grid min-h-svh place-items-center">
-      <Spinner className="size-6 text-muted-foreground" />
+      <BikeLoader className="w-56 sm:w-72" />
     </div>
   );
 }
