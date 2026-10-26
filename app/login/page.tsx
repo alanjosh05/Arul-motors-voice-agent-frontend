@@ -52,6 +52,8 @@ export default function LoginPage() {
         <div className="pointer-events-none absolute inset-0 opacity-[0.14] [background-image:radial-gradient(circle_at_1px_1px,currentColor_1px,transparent_0)] [background-size:22px_22px]" />
         <div className="pointer-events-none absolute -top-40 -right-40 size-[520px] rounded-full bg-white/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-48 -left-24 size-[460px] rounded-full bg-black/20 blur-3xl" />
+        {/* The full logo already reads ARUL MOTORS · NAZARETH · YAMAHA. */}
+        <BrandMark full className="relative h-16 w-auto shrink-0 self-start drop-shadow-md [@media(max-height:720px)]:h-12" />
         {/* Takes the height left over (none on very short screens), so the panel
             always fits the screen. */}
         <div className="relative flex min-h-0 flex-1 items-center justify-center">
@@ -72,9 +74,8 @@ export default function LoginPage() {
       </aside>
 
       <main className="relative flex flex-col items-center justify-center p-6 sm:p-10 lg:overflow-y-auto">
-        {/* The full logo already reads ARUL MOTORS · NAZARETH · YAMAHA. In the
-            flow on phones (so it can't cover the form), pinned top-left above. */}
-        <BrandMark full className="mb-6 h-14 w-auto self-start drop-shadow-sm sm:absolute sm:top-6 sm:left-6 sm:mb-0 lg:top-8 lg:left-8 lg:h-16 [@media(max-height:720px)]:h-12" />
+        {/* Without the blue panel (phones, tablets): the screen's top-left is here. */}
+        <BrandMark full className="mb-6 h-14 w-auto self-start drop-shadow-sm sm:absolute sm:top-6 sm:left-6 sm:mb-0 lg:hidden" />
         <div className="w-full max-w-sm space-y-8">
           
           <div className="space-y-1.5">
