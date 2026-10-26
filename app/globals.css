@@ -184,3 +184,13 @@
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
 }
+
+/* Entrance animations (components/motion/animate-in.tsx): hidden until
+   anime.js starts them, so nothing flashes in first. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-anim-pending="cards"] [data-slot="card"],
+  [data-anim-pending="login"] :is(aside > img, main > img, [data-anim], [data-split], main > div > *),
+  [data-anim-pending="notFound"] :is([data-anim="art"], [data-anim="text"] > *, [data-anim="action"]) {
+    opacity: 0;
+  }
+}

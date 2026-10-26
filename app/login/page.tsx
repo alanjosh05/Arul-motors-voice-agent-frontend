@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LoginArt } from "@/components/art/login";
+import { AnimateIn } from "@/components/motion/animate-in";
 import { useAuth } from "@/components/auth-provider";
 import { BrandMark } from "@/components/layout/app-sidebar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -47,7 +48,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="grid min-h-svh lg:h-svh lg:grid-cols-[1.05fr_1fr] lg:overflow-hidden">
+    <AnimateIn preset="login" className="grid min-h-svh lg:h-svh lg:grid-cols-[1.05fr_1fr] lg:overflow-hidden">
       <aside className="relative hidden overflow-hidden bg-[oklch(0.42_0.19_263)] p-10 text-white lg:flex lg:flex-col lg:gap-6 [@media(max-height:720px)]:p-7 [@media(max-height:720px)]:gap-4">
         <div className="pointer-events-none absolute inset-0 opacity-[0.14] [background-image:radial-gradient(circle_at_1px_1px,currentColor_1px,transparent_0)] [background-size:22px_22px]" />
         <div className="pointer-events-none absolute -top-40 -right-40 size-[520px] rounded-full bg-white/10 blur-3xl" />
@@ -56,16 +57,16 @@ export default function LoginPage() {
         <BrandMark full className="relative h-16 w-auto shrink-0 self-start drop-shadow-md [@media(max-height:720px)]:h-12" />
         {/* Takes the height left over (none on very short screens), so the panel
             always fits the screen. */}
-        <div className="relative flex min-h-0 flex-1 items-center justify-center">
+        <div data-anim="art" className="relative flex min-h-0 flex-1 items-center justify-center">
           <LoginArt className="h-full max-h-80 w-auto max-w-lg drop-shadow-sm" />
         </div>
 
         <div className="relative max-w-md shrink-0 space-y-8 [@media(max-height:720px)]:space-y-5">
           <div className="space-y-3">
-            <h1 className="text-4xl [@media(max-height:720px)]:text-3xl leading-[1.1] font-semibold tracking-tight text-balance">
+            <h1 data-split className="text-4xl [@media(max-height:720px)]:text-3xl leading-[1.1] font-semibold tracking-tight text-balance">
               Every service reminder, handled.
             </h1>
-            <p className="text-white/75 text-pretty">
+            <p data-anim="sub" className="text-white/75 text-pretty">
               The showroom CRM with a voice agent that follows up with every customer, books their service date and logs the outcome.
             </p>
           </div>
@@ -114,6 +115,6 @@ export default function LoginPage() {
           <p className="text-center text-xs text-muted-foreground">Accounts are created by your admin in Settings → Team.</p>
         </div>
       </main>
-    </div>
+    </AnimateIn>
   );
 }

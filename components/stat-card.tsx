@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import { CountUp } from "@/components/motion/count-up";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -6,13 +7,16 @@ import { cn } from "@/lib/utils";
 export function StatCard({
   label,
   value,
+  suffix,
   hint,
   icon: Icon,
   tone = "primary",
   loading,
 }: {
   label: string;
+  /** A number counts up to its value. */
   value: React.ReactNode;
+  suffix?: string;
   hint?: React.ReactNode;
   icon: LucideIcon;
   tone?: "primary" | "success" | "warning" | "destructive";
@@ -32,7 +36,9 @@ export function StatCard({
           {loading ? (
             <Skeleton className="h-8 w-16" />
           ) : (
-            <p className="tabular text-3xl font-semibold tracking-tight">{value}</p>
+            <p className="tabular text-3xl font-semibold tracking-tight">
+              {typeof value === "number" ? <CountUp value={value} suffix={suffix} /> : value}
+            </p>
           )}
           {hint && <div className="text-xs text-muted-foreground">{loading ? <Skeleton className="h-3.5 w-28" /> : hint}</div>}
         </div>
