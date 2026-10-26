@@ -54,8 +54,8 @@ export default function LoginPage() {
         <div className="pointer-events-none absolute -bottom-48 -left-24 size-[460px] rounded-full bg-black/20 blur-3xl" />
         {/* Takes the height left over (none on very short screens), so the panel
             always fits the screen. */}
-        <div className="relative flex min-h-0 flex-1 items-center">
-          <LoginArt className="h-full max-h-72 w-auto max-w-md drop-shadow-sm" />
+        <div className="relative flex min-h-0 flex-1 items-center justify-center">
+          <LoginArt className="h-full max-h-80 w-auto max-w-lg drop-shadow-sm" />
         </div>
 
         <div className="relative max-w-md shrink-0 space-y-8 [@media(max-height:720px)]:space-y-5">
@@ -76,13 +76,7 @@ export default function LoginPage() {
             flow on phones (so it can't cover the form), pinned top-right above. */}
         <BrandMark full className="mb-6 h-20 w-auto self-end drop-shadow-sm sm:absolute sm:top-6 sm:right-6 sm:mb-0 lg:top-8 lg:right-8 lg:h-24 [@media(max-height:720px)]:h-16" />
         <div className="w-full max-w-sm space-y-8">
-          <div className="flex items-center gap-3">
-            <BrandMark className="size-12" />
-            <div className="leading-tight">
-              <p className="font-semibold tracking-tight">Arul Motors CRM</p>
-              <p className="text-xs text-muted-foreground">Yamaha · Nazareth</p>
-            </div>
-          </div>
+          
           <div className="space-y-1.5">
             <h2 className="text-2xl font-semibold tracking-tight">Sign in</h2>
             <p className="text-sm text-muted-foreground">Welcome back. Use your showroom staff account.</p>
