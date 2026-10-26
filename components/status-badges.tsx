@@ -54,6 +54,11 @@ export function OutcomeBadge({ outcome }: { outcome: CallOutcome }) {
 /** Next service status. Before the due date: "In N days". After it, the
  * service type's overdue days are a grace period ("Due · N days left"); past
  * them it's "Overdue N days", counted from when it became overdue. */
+/** The next service's date is set at the oil change (not called until then). */
+export function OilChangeBadge() {
+  return <ToneBadge tone="violet">After oil change</ToneBadge>;
+}
+
 export function DueBadge({ date, serviceType }: { date: string; serviceType?: string }) {
   const graceDays = useOverdueDays(serviceType);
   const n = daysFromToday(date);

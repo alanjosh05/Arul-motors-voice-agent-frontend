@@ -61,6 +61,8 @@ function Entry({ item, subtitle }: { item: ServiceHistoryItem; subtitle?: string
         <p className="text-sm font-medium">
           {item.service_type}
           {item.job_type && <Badge variant="outline" className="ml-2 align-middle text-[10px]">{item.job_type}</Badge>}
+          {item.schedule === "keep" && <Badge variant="secondary" className="ml-1 align-middle text-[10px]">Schedule unchanged</Badge>}
+          {item.schedule === "pending" && <Badge variant="secondary" className="ml-1 align-middle text-[10px]">Oil not changed</Badge>}
         </p>
         <p className="tabular text-xs text-muted-foreground">{formatDate(item.service_date, "d MMM yyyy")}</p>
       </div>

@@ -7,7 +7,7 @@ import { useState } from "react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { DataTable, SortHeader } from "@/components/data-table";
 import { PageHeader } from "@/components/page-header";
-import { DueBadge } from "@/components/status-badges";
+import { DueBadge, OilChangeBadge } from "@/components/status-badges";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -123,9 +123,14 @@ const columns: ColumnDef<Vehicle>[] = [
     cell: ({ row }) => (
       <div className="flex flex-col items-start gap-1">
         <span className="text-sm">
-          {row.original.next_service_type} · <span className="tabular">{formatDay(row.original.next_service_date)}</span>
+          {row.original.next_service_type}
+          {!row.original.next_due_pending && <> · <span className="tabular">{formatDay(row.original.next_service_date)}</span></>}
         </span>
-        <DueBadge date={row.original.next_service_date} serviceType={row.original.next_service_type} />
+        {row.original.next_due_pending ? (
+          <OilChangeBadge />
+        ) : (
+          <DueBadge date={row.original.next_service_date} serviceType={row.original.next_service_type} />
+        )}
       </div>
     ),
   },
@@ -135,7 +140,7 @@ const columns: ColumnDef<Vehicle>[] = [
 export default function BikesPage() {
   const { data, isLoading } = useVehicles();
   const [open, setOpen] = useState(false);
-  const dueSoon = data?.filter((v) => daysFromToday(v.next_service_date) <= 7).length ?? 0;
+  const dueSoon = data?.filter((v) => !v.next_due_pending && daysFromToday(v.next_service_date) <= 7).length ?? 0;
   return (
     <>
       <PageHeader

@@ -37,6 +37,8 @@ export interface Vehicle {
   /** Bought from another dealer (serviced here); purchase date often unknown. */
   bought_elsewhere?: number | boolean;
   dealer_name?: string | null;
+  /** The next service's date is set at the oil change (not called until then). */
+  next_due_pending?: number | boolean;
   customer_name?: string;
   mobile_number?: string;
 }
@@ -185,6 +187,9 @@ export interface JobCardFeedback {
 }
 
 export interface ServiceHistoryItem {
+  /** What it did to the schedule: set the next service, after the oil change
+   * (pending), or a repair that left it unchanged (keep). */
+  schedule?: "set" | "pending" | "keep" | null;
   kind: "record" | "booking";
   id?: number; // record id (for the job card PDF)
   vehicle_id?: number;

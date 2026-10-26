@@ -32,6 +32,11 @@ import type { Appointment, JobCardFeedback, ServiceHistoryItem, Vehicle } from "
 import { cn } from "@/lib/utils";
 
 const DEFAULT_INTERVAL_DAYS = 90;
+// Repairs don't move the service schedule (e.g. an accident a few days after
+// a service): their next service stays as it is.
+const REPAIR_JOBS = ["Accidental", "Quick repair", "Warranty repair"];
+const REPAIR_SERVICES = ["Accident repair", "Repair"];
+type Schedule = "set" | "pending" | "keep";
 const MAX_PDF_MB = 10; // database.MAX_PDF_BYTES
 
 // Table rows are edited as text, then sent as numbers.
@@ -107,6 +112,14 @@ export function CloseServiceDialog({
   const [jobCardNo, setJobCardNo] = useState(draft.get("jobCardNo", r?.job_card_no ?? ""));
   const [jobType, setJobType] = useState(draft.get("jobType", r ? (r.job_type ?? "") : isFree === false ? "Paid service" : "Free service"));
   const [serviceType, setServiceType] = useState(draft.get("serviceType", bookedType));
+  // A repair job: the visit is a repair, not the bike's due service (unless
+  // staff already picked the service).
+  const chooseJobType = (value: string) => {
+    setJobType(value);
+    if (REPAIR_JOBS.includes(value) && serviceType === bookedType && !editing)
+      setServiceType(value === "Accidental" ? "Accident repair" : "Repair");
+    else if (!REPAIR_JOBS.includes(value) && REPAIR_SERVICES.includes(serviceType) && !editing) setServiceType(bookedType);
+  };
   const [receivedDate, setReceivedDate] = useState<string | null>(
     draft.get("receivedDate", r ? (r.received_date ?? null) : booked <= today ? booked : today),
   );
@@ -139,6 +152,8 @@ export function CloseServiceDialog({
   // the delivery date, until staff pick something else (edit: as saved).
   const [nextTypeChoice, setNextType] = useState<string | null>(draft.get("nextType", r?.next_service_type ?? null));
   const [nextDateChoice, setNextDate] = useState<string | null | undefined>(draft.get("nextDate", r ? (r.next_service_date ?? null) : undefined));
+  // null = follow the job type (a repair keeps the schedule).
+  const [scheduleChoice, setSchedule] = useState<Schedule | null>(draft.get("schedule", (r?.schedule as Schedule | null | undefined) ?? null));
   const [file, setFile] = useState<File | null>(null);
   // What reading the job card filled in, and anything to double-check.
   const [readNote, setReadNote] = useState<{ filled: number; warnings: string[]; failed?: boolean } | null>(null);
@@ -146,7 +161,7 @@ export function CloseServiceDialog({
   useAutosaveDraft(draftKey, {
     jobCardNo, jobType, serviceType, receivedDate, deliveredDate, odometer, frame, engine, requests,
     jobsDone, workDone, parts, labour, checks, feedback, technician, mechanic, supervisor, remarks,
-    nextType: nextTypeChoice, nextDate: nextDateChoice,
+    nextType: nextTypeChoice, nextDate: nextDateChoice, schedule: scheduleChoice,
   });
 
   const frameValue = frame ?? bike?.frame_number ?? "";
@@ -158,8 +173,12 @@ export function CloseServiceDialog({
 
   const from = deliveredDate ?? today;
   const intervalFor = (name: string) => types?.find((t) => t.name === name)?.interval_days ?? DEFAULT_INTERVAL_DAYS;
+  const schedule: Schedule = scheduleChoice ?? (REPAIR_JOBS.includes(jobType) ? "keep" : "set");
   const suggested = nextScheduledType(types, serviceType);
-  const nextType = nextTypeChoice ?? suggested?.name ?? serviceType;
+  // A bike waiting for its oil change: this visit sets that service's date.
+  const waiting = !editing && bike?.next_due_pending ? bike.next_service_type : null;
+  const nextType = nextTypeChoice ?? waiting ?? suggested?.name ?? serviceType;
+  const oilChanged = jobsDone.includes("Engine oil change");
   const nextDate = nextDateChoice !== undefined ? nextDateChoice : toISO(addDays(new Date(`${from}T00:00:00`), intervalFor(nextType)));
   const chooseNextType = (name: string) => {
     setNextType(name);
@@ -179,7 +198,7 @@ export function CloseServiceDialog({
       }
     };
     put(card.job_card_no, setJobCardNo);
-    put(card.job_type && JOB_TYPES.includes(card.job_type) ? card.job_type : null, setJobType);
+    put(card.job_type && JOB_TYPES.includes(card.job_type) ? card.job_type : null, chooseJobType);
     // The service stays the booking's: the circled free-service number is
     // easy to misread (both models tested read "1" where "2" was circled).
     put(card.odometer_km != null ? String(card.odometer_km) : null, setOdometer);
@@ -264,8 +283,9 @@ export function CloseServiceDialog({
     if (!jobsDone.length && !workDone.trim() && !usedParts.length && !usedLabour.length)
       next.work = "Tick the jobs done, add parts or labour, or describe the work.";
     if (!file && !editing) next.file = errors.file ?? "Attach the scanned job card (PDF).";
-    if (nextDate && deliveredDate && nextDate <= deliveredDate) next.nextDate = "Must be after this service.";
+    if (schedule === "set" && nextDate && deliveredDate && nextDate <= deliveredDate) next.nextDate = "Must be after this service.";
     if (!serviceType) next.serviceType = "Pick the service that was done.";
+    if (schedule === "pending" && !nextType) next.nextDate = "Pick the next service type.";
     setErrors(next);
     if (Object.keys(next).length) return;
 
@@ -292,8 +312,11 @@ export function CloseServiceDialog({
     add("mechanic", mechanic);
     add("supervisor", supervisor);
     add("remarks", remarks);
-    if (nextDate) {
+    form.append("schedule", schedule);
+    if (schedule === "set" && nextDate) {
       form.append("next_service_date", nextDate);
+      form.append("next_service_type", nextType);
+    } else if (schedule === "pending") {
       form.append("next_service_type", nextType);
     }
     if (file) form.append("report", file, file.name); // editing: optional, replaces the job card
@@ -305,6 +328,8 @@ export function CloseServiceDialog({
   }
 
   const typeOptions = (current: string) => [...new Set([...serviceTypes, ...(current ? [current] : [])])];
+  // The visit itself can also be a repair (not one of the scheduled services).
+  const visitOptions = (current: string) => [...new Set([...serviceTypes, ...REPAIR_SERVICES, ...(current ? [current] : [])])];
 
   return (
     <FormDialog
@@ -403,7 +428,7 @@ export function CloseServiceDialog({
             </Field>
             <Field>
               <FieldLabel>Type of job</FieldLabel>
-              <Select value={jobType} onValueChange={setJobType}>
+              <Select value={jobType} onValueChange={chooseJobType}>
                 <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {JOB_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
@@ -415,7 +440,7 @@ export function CloseServiceDialog({
               <Select value={serviceType} onValueChange={setServiceType}>
                 <SelectTrigger className="w-full" aria-invalid={!!errors.serviceType}><SelectValue placeholder="Pick the service" /></SelectTrigger>
                 <SelectContent>
-                  {typeOptions(serviceType).map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  {visitOptions(serviceType).map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                 </SelectContent>
               </Select>
               {walkIn && <FieldDescription>As on the job card, e.g. Third free service. Any service can come first.</FieldDescription>}
@@ -582,23 +607,65 @@ export function CloseServiceDialog({
         </Section>
 
         <Section title="Next service">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field>
-              <FieldLabel>Next service type</FieldLabel>
-              <Select value={nextType} onValueChange={chooseNextType}>
-                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {typeOptions(nextType).map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field data-invalid={!!errors.nextDate}>
-              <FieldLabel>Next service due</FieldLabel>
-              <DatePicker value={nextDate} onChange={setNextDate} min={from} invalid={!!errors.nextDate} />
-              <FieldError>{errors.nextDate}</FieldError>
-            </Field>
-          </div>
-          <FieldDescription>The bike moves to this service, and the agent follows up when it&rsquo;s due.</FieldDescription>
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            size="sm"
+            className="w-full flex-wrap"
+            value={schedule}
+            onValueChange={(v) => v && setSchedule(v as Schedule)}
+          >
+            <ToggleGroupItem value="set" className="flex-1">Set the date</ToggleGroupItem>
+            <ToggleGroupItem value="pending" className="flex-1">After the oil change</ToggleGroupItem>
+            <ToggleGroupItem value="keep" className="flex-1">Keep as it is (repair)</ToggleGroupItem>
+          </ToggleGroup>
+          {schedule === "keep" ? (
+            <FieldDescription>
+              A repair visit (e.g. after an accident): the bike&rsquo;s service schedule doesn&rsquo;t change
+              {bike ? ` (${bike.next_service_type}${bike.next_due_pending ? ", after the oil change" : `, due ${formatDay(bike.next_service_date)}`})` : ""}.
+              Only the odometer and frame/engine numbers are updated.
+            </FieldDescription>
+          ) : (
+            <>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field>
+                  <FieldLabel>Next service type</FieldLabel>
+                  <Select value={nextType} onValueChange={chooseNextType}>
+                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {typeOptions(nextType).map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                {schedule === "set" ? (
+                  <Field data-invalid={!!errors.nextDate}>
+                    <FieldLabel>Next service due</FieldLabel>
+                    <DatePicker value={nextDate} onChange={setNextDate} min={from} invalid={!!errors.nextDate} />
+                    <FieldError>{errors.nextDate}</FieldError>
+                  </Field>
+                ) : (
+                  <Field data-invalid={!!errors.nextDate}>
+                    <FieldLabel>Next service due</FieldLabel>
+                    <p className="flex h-9 items-center rounded-md border border-dashed px-3 text-sm text-muted-foreground">Set when the oil is changed</p>
+                    <FieldError>{errors.nextDate}</FieldError>
+                  </Field>
+                )}
+              </div>
+              <FieldDescription>
+                {schedule === "pending"
+                  ? "The engine oil wasn't changed: the agent won't call about this bike until the visit where the oil is changed sets the date."
+                  : "The bike moves to this service, and the agent follows up when it’s due."}
+              </FieldDescription>
+              {schedule === "set" && !oilChanged && !editing && (
+                <FieldDescription className="text-amber-700 dark:text-amber-400">
+                  &ldquo;Engine oil change&rdquo; isn&rsquo;t ticked. If the oil wasn&rsquo;t changed, choose &ldquo;After the oil change&rdquo;.
+                </FieldDescription>
+              )}
+              {waiting && (
+                <FieldDescription>This bike was waiting for its oil change: this visit sets the date of its {waiting}.</FieldDescription>
+              )}
+            </>
+          )}
         </Section>
       </FieldGroup>
     </FormDialog>
