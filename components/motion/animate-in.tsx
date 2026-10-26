@@ -5,27 +5,38 @@
 // Until anime.js has loaded, the elements to animate are hidden by CSS
 // (`[data-anim-pending]` in globals.css), so they don't flash in and then jump.
 // If it takes longer than REVEAL_MS (slow mobile data), the page simply shows
-// without the animation.
-import { useEffect, useRef } from "react";
-import { loadAnime, reduceMotion } from "@/lib/motion";
+// without the animation. Runs before paint (layout effect), so once anime.js
+// is loaded, a new page never shows a frame before its animation starts.
+import { useLayoutEffect, useRef } from "react";
+import { type Anime, loadAnime, reduceMotion } from "@/lib/motion";
 
-type Anime = Awaited<ReturnType<typeof loadAnime>>;
 type Preset = (anime: Anime, root: HTMLElement) => void | (() => void);
 
 const REVEAL_MS = 800;
 
+/** Cards that aren't inside another card. */
+const outerCards = (el: Element) =>
+  [...el.querySelectorAll<HTMLElement>("[data-slot=card]")].filter((c) => !c.parentElement?.closest("[data-slot=card]"));
+
 const PRESETS = {
-  /** Cards rise into place one after another (the dashboard). */
-  cards: ({ animate, stagger, utils }, root) => {
-    const cards = root.querySelectorAll<HTMLElement>("[data-slot=card]");
-    utils.set(cards, { opacity: 0 });
-    animate(cards, {
+  /** Any CRM page: its header and sections rise in, cards one by one. */
+  page: ({ animate, stagger, utils }, root) => {
+    // A page wrapped in a single element: animate what's inside it.
+    let level: Element = root;
+    while (level.children.length === 1 && !level.children[0].matches("[data-slot=card]")) level = level.children[0];
+    const targets = [...level.children].flatMap((el) => {
+      if (el.matches("[data-slot=card]")) return [el as HTMLElement];
+      const cards = outerCards(el);
+      return cards.length ? cards : [el as HTMLElement];
+    });
+    utils.set(targets, { opacity: 0 });
+    animate(targets, {
       opacity: [0, 1],
-      translateY: [22, 0],
-      scale: [0.97, 1],
-      duration: 750,
+      translateY: [18, 0],
+      scale: [0.985, 1],
+      duration: 650,
       ease: "outExpo",
-      delay: stagger(55),
+      delay: stagger(45, { start: 30 }),
     });
   },
 
@@ -51,14 +62,13 @@ const PRESETS = {
     return () => split?.revert();
   },
 
-  /** 404: the picture drops in with a bounce, then keeps floating. */
+  /** 404: the picture drops in with a bounce (then floats: components/art). */
   notFound: ({ animate, stagger, utils }, root) => {
     const art = root.querySelectorAll<HTMLElement>("[data-anim=art]");
     const text = root.querySelectorAll<HTMLElement>("[data-anim=text] > *, [data-anim=action]");
     utils.set([...art, ...text], { opacity: 0 });
     animate(art, { opacity: [0, 1], translateY: [-60, 0], ease: "outBounce", duration: 1100 });
     animate(text, { opacity: [0, 1], translateY: [16, 0], ease: "outExpo", duration: 700, delay: stagger(90, { start: 500 }) });
-    animate(art, { translateY: [0, -10], ease: "inOutSine", duration: 1800, delay: 1200, loop: true, alternate: true });
   },
 } satisfies Record<string, Preset>;
 
@@ -73,7 +83,7 @@ export function AnimateIn({
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const root = ref.current;
     if (!root) return;
     const reveal = () => root.removeAttribute("data-anim-pending");

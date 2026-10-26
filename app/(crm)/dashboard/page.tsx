@@ -21,7 +21,6 @@ import { formatDay, timeAgo } from "@/lib/format";
 import { useStats } from "@/lib/queries";
 import { BookingArt } from "@/components/art/booking";
 import { CallArt } from "@/components/art/call";
-import { AnimateIn } from "@/components/motion/animate-in";
 
 // Charts load in their own chunk after the KPIs render.
 const chartLoading = () => <Skeleton className="h-[240px] w-full rounded-lg" />;
@@ -49,7 +48,7 @@ export default function DashboardPage() {
   const totalCalls30 = outcomes.reduce((sum, o) => sum + o.count, 0);
 
   return (
-    <AnimateIn preset="cards" className="contents">
+    <>
       <div className="flex flex-col gap-1">
         <p className="text-sm text-muted-foreground">{formatDay(data?.today ?? new Date().toISOString())}</p>
         <h1 className="text-2xl font-semibold tracking-tight">
@@ -296,7 +295,7 @@ export default function DashboardPage() {
       <UpcomingAndRecent data={data} isLoading={isLoading} />
 
       <BikesByModel />
-    </AnimateIn>
+    </>
   );
 }
 

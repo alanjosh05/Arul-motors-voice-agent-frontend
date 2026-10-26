@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { CallProvider } from "@/components/call/call-provider";
@@ -13,10 +13,12 @@ import { ShiftGate } from "@/components/shift-gate";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Spinner } from "@/components/ui/spinner";
 import { prefetchAllPages } from "@/lib/queries";
+import { AnimateIn } from "@/components/motion/animate-in";
 
 export default function CrmLayout({ children }: { children: React.ReactNode }) {
   const { user, ready } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   const queryClient = useQueryClient();
 
@@ -55,7 +57,12 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
           <AppSidebar />
           <SidebarInset>
             <SiteHeader />
-            <main className="flex flex-1 flex-col gap-6 p-4 md:p-6 lg:p-8">{children}</main>
+            <main className="flex flex-1 flex-col gap-6 p-4 md:p-6 lg:p-8">
+              {/* Each page animates in when opened (keyed by route). */}
+              <AnimateIn key={pathname} preset="page" className="contents">
+                {children}
+              </AnimateIn>
+            </main>
           </SidebarInset>
         </SidebarProvider>
       </CallProvider>

@@ -12,13 +12,14 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, ChevronsUpDown, Inbox, Search } from "lucide-react";
-import { useDeferredValue, useState } from "react";
+import { useDeferredValue, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useAnime } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 // One shared empty list while data loads. A new `[]` on every render makes the
@@ -105,6 +106,18 @@ export function DataTable<T>({
   const total = table.getFilteredRowModel().rows.length;
   const { pageIndex, pageSize: size } = table.getState().pagination;
 
+  // Rows ripple in when the list loads, or on a new page, search or sort
+  // (not on every background refresh).
+  const bodyRef = useRef<HTMLTableSectionElement>(null);
+  useAnime(
+    bodyRef,
+    ({ animate, stagger }, el) => {
+      if (loading) return;
+      animate(el.children, { opacity: [0, 1], translateY: [8, 0], duration: 420, ease: "outQuad", delay: stagger(28) });
+    },
+    [loading, pageIndex, globalFilter, JSON.stringify(sorting), rows[0]?.id],
+  );
+
   return (
     <div className="space-y-3">
       {(searchable || toolbar) && (
@@ -138,7 +151,7 @@ export function DataTable<T>({
               </TableRow>
             ))}
           </TableHeader>
-          <TableBody>
+          <TableBody ref={bodyRef}>
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i} className="hover:bg-transparent">

@@ -14,7 +14,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CustomerAvatar } from "@/components/customer-avatar";
 import { useLive } from "@/components/live-provider";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { parseTimestamp, timeAgo } from "@/lib/format";
 import type { ActiveCall, LiveNotification } from "@/lib/types";
+import { pop, useAnime } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 /** "Live" when the WebSocket is connected. */
@@ -148,20 +149,51 @@ export function NotificationsBell() {
   // Newest notification already read when the bell opened: anything newer is listed.
   const [seenAtOpen, setSeenAtOpen] = useState<number>(Infinity);
   const shown = notifications.filter((n) => n.id > seenAtOpen);
+
+  // The bell rings when something new arrives, and the count pops.
+  const bellRef = useRef<HTMLButtonElement>(null);
+  const lastUnread = useRef(unread);
+  useAnime(
+    bellRef,
+    (anime, el) => {
+      const more = unread > lastUnread.current;
+      lastUnread.current = unread;
+      if (!more) return;
+      const bell = el.querySelector("svg");
+      if (bell) anime.animate(bell, { rotate: [0, -22, 18, -12, 8, -4, 0], duration: 900, ease: "outSine" });
+      const badge = el.querySelector("[data-badge]");
+      if (badge) pop(anime, badge);
+    },
+    [unread],
+  );
+  // Opening the list: notifications slide in one by one; a new one arriving
+  // while it's open slides in at the top.
+  const listRef = useRef<HTMLDivElement>(null);
+  const opened = useRef(false);
+  useAnime(
+    listRef,
+    ({ animate, stagger }, el) => {
+      const items = [...el.children].slice(0, opened.current ? 1 : 12);
+      animate(items, { opacity: [0, 1], translateX: [opened.current ? -16 : 24, 0], duration: 500, ease: "outExpo", delay: stagger(45) });
+      opened.current = true;
+    },
+    [open, shown[0]?.id],
+  );
   return (
     <Popover
       open={open}
       onOpenChange={(o) => {
         setOpen(o);
+        opened.current = false; // the next opening staggers the whole list
         if (o) setSeenAtOpen((notifications[unread] ?? { id: 0 }).id);
         else markAllRead();
       }}
     >
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative size-8" aria-label={`Notifications${unread ? ` (${unread} new)` : ""}`}>
+        <Button ref={bellRef} variant="ghost" size="icon" className="relative size-8" aria-label={`Notifications${unread ? ` (${unread} new)` : ""}`}>
           <Bell />
           {unread > 0 && (
-            <span className="tabular absolute -top-0.5 -right-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] leading-none font-semibold text-white">
+            <span data-badge className="tabular absolute -top-0.5 -right-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] leading-none font-semibold text-white">
               {unread > 9 ? "9+" : unread}
             </span>
           )}
@@ -185,7 +217,7 @@ export function NotificationsBell() {
         {shown.length ? (
           // Native scrolling: Radix ScrollArea doesn't scroll with only a max height.
           <div className="scroll-y max-h-[min(26rem,calc(100svh-9rem))]">
-            <div className="space-y-0.5 p-1.5" onClick={() => setOpen(false)}>
+            <div ref={listRef} className="space-y-0.5 p-1.5" onClick={() => setOpen(false)}>
               {shown.map((n) => (
                 <NotificationItem key={n.id} n={n} unread />
               ))}

@@ -6,8 +6,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
+import { useRef } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { NAV } from "@/components/layout/nav";
+import { pop, useAnime } from "@/lib/motion";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -128,8 +130,60 @@ function UserMenu() {
   );
 }
 
+/** A nav badge that pops when its count changes. */
+function NavBadge({ count }: { count: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useAnime(ref, (anime, el) => pop(anime, el), [count]);
+  return (
+    <SidebarMenuBadge ref={ref} className="tabular rounded-full bg-primary/10 text-primary">
+      {count}
+    </SidebarMenuBadge>
+  );
+}
+
 export function AppSidebar() {
   const pathname = usePathname();
+  const contentRef = useRef<HTMLDivElement>(null);
+  // Menu items slide in when the CRM opens; icons wiggle on hover.
+  useAnime(
+    contentRef,
+    ({ animate, stagger, utils }, el) => {
+      const items = el.querySelectorAll("[data-sidebar=group-label], [data-sidebar=menu-item]");
+      utils.set(items, { opacity: 0 });
+      animate(items, {
+        opacity: [0, 1],
+        translateX: [-14, 0],
+        duration: 550,
+        ease: "outExpo",
+        delay: stagger(35, { start: 80 }),
+      });
+      let last: Element | null = null;
+      const wiggle = (e: MouseEvent) => {
+        const button = (e.target as Element).closest("[data-sidebar=menu-button]");
+        if (button === last) return;
+        last = button;
+        const icon = button?.querySelector("svg");
+        if (icon) animate(icon, { rotate: [0, -14, 10, 0], scale: [1, 1.2, 1], duration: 500, ease: "outQuad" });
+      };
+      const leave = () => (last = null);
+      el.addEventListener("mouseover", wiggle);
+      el.addEventListener("mouseleave", leave);
+      return () => {
+        el.removeEventListener("mouseover", wiggle);
+        el.removeEventListener("mouseleave", leave);
+      };
+    },
+    [],
+  );
+  // The page you've just opened: its icon gives a little bounce.
+  useAnime(
+    contentRef,
+    ({ animate }, el) => {
+      const icon = el.querySelector("[data-sidebar=menu-button][data-active=true] svg");
+      if (icon) animate(icon, { scale: [0.6, 1], ease: "outElastic(1, .5)", duration: 700 });
+    },
+    [pathname],
+  );
   const { data: stats } = useStats();
   const { setOpenMobile } = useSidebar();
   const queryClient = useQueryClient();
@@ -156,7 +210,7 @@ export function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent ref={contentRef}>
         {groups.map((group) => (
           <SidebarGroup key={group}>
             <SidebarGroupLabel>{group}</SidebarGroupLabel>
@@ -179,7 +233,7 @@ export function AppSidebar() {
                           <span>{item.title}</span>
                         </Link>
                       </SidebarMenuButton>
-                      {!!count && <SidebarMenuBadge className="tabular rounded-full bg-primary/10 text-primary">{count}</SidebarMenuBadge>}
+                      {!!count && <NavBadge count={count} />}
                     </SidebarMenuItem>
                   );
                 })}
