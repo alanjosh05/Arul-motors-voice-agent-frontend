@@ -50,7 +50,7 @@ export function BikeLoader({ className, label = "Loading…" }: { className?: st
         viewBox="0 -24 800 444"
         aria-hidden
         focusable="false"
-        className="h-auto w-full overflow-hidden rounded-2xl"
+        className="h-auto w-full overflow-hidden"
         dangerouslySetInnerHTML={{ __html: SCENE }}
       />
       {label && <p className="text-sm font-medium text-muted-foreground">{label}</p>}
