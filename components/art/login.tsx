@@ -43,6 +43,9 @@ const CSS = `
   .la-bars path:nth-child(3n) { animation-delay: -.2s; }
   .la-float { animation: la-float 2.4s ease-in-out infinite alternate; }
 }
+.la-go { animation: la-go 1.1s cubic-bezier(.5, 0, .75, 0) forwards; }
+.la-go .la-wheel { animation-duration: .18s; }
+@keyframes la-go { 0% { transform: translateX(0); } 18% { transform: translateX(-14px); } 100% { transform: translateX(420px); } }
 @keyframes la-spin { to { transform: rotate(360deg); } }
 @keyframes la-road { to { stroke-dashoffset: 38; } }
 @keyframes la-trees { to { transform: translateX(-480px); } }
@@ -117,7 +120,8 @@ function Plants() {
   );
 }
 
-export function LoginArt({ className }: { className?: string }) {
+/** `leaving`: the rider pulls away and rides off to the right (signing in). */
+export function LoginArt({ className, leaving = false }: { className?: string; leaving?: boolean }) {
   return (
     <svg viewBox="0 0 480 270" aria-hidden focusable="false" className={cn("h-auto w-full", className)}>
       <style>{CSS}</style>
@@ -138,6 +142,7 @@ export function LoginArt({ className }: { className?: string }) {
       </g>
       <ellipse cx={244} cy={252} rx={130} ry={4} fill="#000" opacity={0.25} />
 
+      <g className={leaving ? "la-go" : undefined}>
       <g className="la-bike">
         <Wheel cx={150} cy={214} />
         <Wheel cx={338} cy={214} />
@@ -174,6 +179,7 @@ export function LoginArt({ className }: { className?: string }) {
           <path d="M247 66Q256 52 272 54" fill="none" stroke="#fff" strokeWidth={3} opacity={0.7} />
         </g>
         <path d="M294 126Q320 106 330 134L306 152Z" fill={C.light} />
+      </g>
       </g>
 
       {/* the agent's call */}

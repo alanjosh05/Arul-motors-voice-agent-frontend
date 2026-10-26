@@ -3,7 +3,7 @@
 import { AlertCircle, Eye, EyeOff } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LoginArt } from "@/components/art/login";
 import { AnimateIn } from "@/components/motion/animate-in";
 import { useAuth } from "@/components/auth-provider";
@@ -15,6 +15,10 @@ import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Spinner } from "@/components/ui/spinner";
 import { errorMessage } from "@/lib/api";
+import { reduceMotion } from "@/lib/motion";
+
+/** How long the bike takes to ride off after signing in (components/art/login.tsx). */
+const RIDE_OFF_MS = 1100;
 
 
 // Client-only: whether the CRM is open depends on the time it's opened, not built.
@@ -28,21 +32,29 @@ export default function LoginPage() {
   const [show, setShow] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Signing in: the bike rides off to the right, then the CRM opens.
+  const [leaving, setLeaving] = useState(false);
+  const signingIn = useRef(false);
 
   useEffect(() => {
-    if (ready && user) router.replace("/dashboard/");
+    // Already signed in when the page opened (not the sign-in below).
+    if (ready && user && !signingIn.current) router.replace("/dashboard/");
   }, [ready, user, router]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setPending(true);
+    signingIn.current = true;
     try {
       await login(username.trim(), password);
-      router.replace("/dashboard/");
+      // The bike is only on screen with the blue panel (wide screens).
+      const ride = !reduceMotion() && window.matchMedia("(min-width: 1024px)").matches;
+      setLeaving(true);
+      setTimeout(() => router.replace("/dashboard/"), ride ? RIDE_OFF_MS : 0);
     } catch (err) {
+      signingIn.current = false;
       setError(errorMessage(err));
-    } finally {
       setPending(false);
     }
   }
@@ -58,7 +70,7 @@ export default function LoginPage() {
         {/* Takes the height left over (none on very short screens), so the panel
             always fits the screen. */}
         <div data-anim="art" className="relative flex min-h-0 flex-1 items-center justify-center">
-          <LoginArt className="h-full max-h-80 w-auto max-w-lg drop-shadow-sm" />
+          <LoginArt leaving={leaving} className="h-full max-h-80 w-auto max-w-lg drop-shadow-sm" />
         </div>
 
         <div className="relative max-w-md shrink-0 space-y-8 [@media(max-height:720px)]:space-y-5">
