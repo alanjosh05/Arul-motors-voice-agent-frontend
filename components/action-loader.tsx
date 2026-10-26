@@ -3,8 +3,9 @@
 // The riding scooter in the centre of the screen, shown for every create,
 // read, update and delete: while an action runs (lib/activity.ts: saving,
 // deleting, uploading, opening a file) or a page's data is loading for the
-// first time. It stays at least MIN_MS so even quick actions are seen, and it
-// doesn't block the page.
+// first time. It stays at least MIN_MS so even quick actions are seen. The
+// page behind is lightened and blurred, and can't be clicked meanwhile (so an
+// action isn't sent twice).
 import { useIsFetching } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { BikeLoader } from "@/components/bike-loader";
@@ -28,7 +29,7 @@ export function ActionLoader() {
 
   if (!shown) return null;
   return (
-    <div className="pointer-events-none fixed inset-0 z-50 grid place-items-center p-4">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-background/55 p-4 backdrop-blur-[3px] animate-in fade-in">
       <div className="w-60 rounded-2xl border bg-background/95 p-3 pb-2 shadow-lg backdrop-blur animate-in fade-in zoom-in-95">
         <BikeLoader label={shown} />
       </div>
