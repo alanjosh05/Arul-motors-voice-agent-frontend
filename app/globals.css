@@ -94,6 +94,14 @@
     --art-ink-soft: oklch(0.36 0.03 280);
     --art-tint: oklch(0.9 0.05 255);
     --art-tint-soft: oklch(0.95 0.025 240);
+    /* People and things that are near-black in unDraw: kept dark here, and
+       given visible tones in dark mode (below) so they don't vanish. */
+    --art-hair: #2f2e41;
+    --art-cloth: #2f2e41;
+    --art-shoe: #090814;
+    --art-device: #1f2937;
+    --art-leaf: #bbf7d0;
+    --art-tyre: #111827;
 }
 
 .dark {
@@ -136,6 +144,12 @@
     --art-ink-soft: oklch(0.6 0.03 280);
     --art-tint: oklch(0.36 0.07 262);
     --art-tint-soft: oklch(0.27 0.04 262);
+    --art-hair: oklch(0.47 0.07 45);
+    --art-cloth: oklch(0.5 0.08 258);
+    --art-shoe: oklch(0.66 0.02 264);
+    --art-device: oklch(0.52 0.02 264);
+    --art-leaf: oklch(0.52 0.12 150);
+    --art-tyre: oklch(0.38 0.012 264);
 }
 
 @layer base {
