@@ -53,28 +53,31 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="grid min-h-svh lg:grid-cols-[1.05fr_1fr]">
-      <aside className="relative hidden overflow-hidden bg-[oklch(0.42_0.19_263)] p-10 text-white lg:flex lg:flex-col">
+    <div className="grid min-h-svh lg:h-svh lg:grid-cols-[1.05fr_1fr] lg:overflow-hidden">
+      <aside className="relative hidden overflow-hidden bg-[oklch(0.42_0.19_263)] p-10 text-white lg:flex lg:flex-col lg:gap-6 [@media(max-height:720px)]:p-7 [@media(max-height:720px)]:gap-4">
         <div className="pointer-events-none absolute inset-0 opacity-[0.14] [background-image:radial-gradient(circle_at_1px_1px,currentColor_1px,transparent_0)] [background-size:22px_22px]" />
         <div className="pointer-events-none absolute -top-40 -right-40 size-[520px] rounded-full bg-white/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-48 -left-24 size-[460px] rounded-full bg-black/20 blur-3xl" />
-        <div className="relative">
+        <div className="relative shrink-0">
           {/* The full logo already reads ARUL MOTORS · NAZARETH · YAMAHA. */}
-          <BrandMark full className="h-28 w-auto drop-shadow-md" />
+          <BrandMark full className="h-28 w-auto drop-shadow-md [@media(max-height:720px)]:h-20" />
         </div>
-        {/* Left out on short screens, where the panel's text needs the room. */}
-        <LoginArt className="relative mt-8 max-w-md drop-shadow-sm [@media(max-height:799px)]:hidden" />
+        {/* Takes the height left over (none on very short screens), so the panel
+            always fits the screen. */}
+        <div className="relative flex min-h-0 flex-1 items-center">
+          <LoginArt className="h-full max-h-72 w-auto max-w-md drop-shadow-sm" />
+        </div>
 
-        <div className="relative mt-auto max-w-md space-y-8">
+        <div className="relative max-w-md shrink-0 space-y-8 [@media(max-height:720px)]:space-y-5">
           <div className="space-y-3">
-            <h1 className="text-4xl leading-[1.1] font-semibold tracking-tight text-balance">
+            <h1 className="text-4xl [@media(max-height:720px)]:text-3xl leading-[1.1] font-semibold tracking-tight text-balance">
               Every service reminder, handled.
             </h1>
             <p className="text-white/75 text-pretty">
               The showroom CRM with a voice agent that follows up with every customer, books their service date and logs the outcome.
             </p>
           </div>
-          <ul className="space-y-4">
+          <ul className="space-y-4 [@media(max-height:720px)]:space-y-2.5">
             {FEATURES.map(({ icon: Icon, title, text }) => (
               <li key={title} className="flex gap-3">
                 <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-white/12 ring-1 ring-white/15">
@@ -82,16 +85,16 @@ export default function LoginPage() {
                 </span>
                 <div>
                   <p className="font-medium">{title}</p>
-                  <p className="text-sm text-white/70">{text}</p>
+                  <p className="text-sm text-white/70 [@media(max-height:640px)]:hidden">{text}</p>
                 </div>
               </li>
             ))}
           </ul>
         </div>
-        <p className="relative mt-10 text-xs text-white/55">© {new Date().getFullYear()} Arul Motors, Nazareth · Thoothukudi district</p>
+        <p className="relative shrink-0 text-xs text-white/55">© {new Date().getFullYear()} Arul Motors, Nazareth · Thoothukudi district</p>
       </aside>
 
-      <main className="flex items-center justify-center p-6 sm:p-10">
+      <main className="flex items-center justify-center p-6 sm:p-10 lg:overflow-y-auto">
         <div className="w-full max-w-sm space-y-8">
           <div className="flex items-center gap-3 lg:hidden">
             <BrandMark className="size-10" />
