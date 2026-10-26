@@ -34,6 +34,7 @@ const ENTITY_KEYS: Record<LiveEntity, string[]> = {
   due: ["due"],
   stats: ["stats"],
   service_types: ["service-types"],
+  showroom_staff: ["showroom-staff"],
   settings: ["settings", "voice-status"],
   service_records: ["service-history", "customer"],
 };

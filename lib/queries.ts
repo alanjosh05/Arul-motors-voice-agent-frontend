@@ -19,8 +19,7 @@ import type {
   ServiceType,
   StaffUser,
   Vehicle,
-  VoiceConfig,
-} from "./types";
+  VoiceConfig, ShowroomStaff, StaffCategory } from "./types";
 
 export const keys = {
   stats: ["stats"] as const,
@@ -32,6 +31,7 @@ export const keys = {
   calls: ["calls"] as const,
   staff: ["staff"] as const,
   serviceTypes: ["service-types"] as const,
+  showroomStaff: ["showroom-staff"] as const,
   voiceStatus: ["voice-status"] as const,
   settings: ["settings"] as const,
   serviceHistory: (vehicleId: number) => ["service-history", vehicleId] as const,
@@ -52,6 +52,7 @@ export const queries = {
   appointments: () => ({ queryKey: keys.appointments, queryFn: () => api<Appointment[]>("/api/appointments") }),
   calls: () => ({ queryKey: keys.calls, queryFn: () => api<CallLog[]>("/api/calls", { query: { limit: CALL_LOG_LIMIT } }) }),
   callCount: () => ({ queryKey: [...keys.calls, "count"], queryFn: () => api<{ total: number }>("/api/calls/count") }),
+  showroomStaff: () => ({ queryKey: keys.showroomStaff, queryFn: () => api<ShowroomStaff[]>("/api/showroom-staff"), staleTime: 300_000 }),
   serviceTypes: () => ({ queryKey: keys.serviceTypes, queryFn: () => api<ServiceType[]>("/api/service-types"), staleTime: 300_000 }),
   settings: () => ({ queryKey: keys.settings, queryFn: () => api<AppSettings>("/api/settings"), staleTime: 300_000 }),
 };
@@ -65,6 +66,7 @@ const PAGE_QUERIES: Record<string, (() => { queryKey: readonly unknown[]; queryF
   "/appointments/": [queries.appointments],
   "/calls/": [queries.calls, queries.callCount],
   "/service-types/": [queries.serviceTypes],
+  "/our-staff/": [queries.showroomStaff],
   "/settings/": [queries.settings],
 };
 
@@ -190,7 +192,6 @@ export const fetchVoiceConfig = () => api<VoiceConfig>("/api/voice/config");
 
 export const useServiceTypes = () => useQuery(queries.serviceTypes());
 
-/** Active service type names in schedule order (built-in list until loaded). */
 /** Types a bike can have as its next service: active, and not repairs. */
 export function useScheduleTypeNames(): string[] {
   const { data } = useServiceTypes();
@@ -200,6 +201,7 @@ export function useScheduleTypeNames(): string[] {
   }, [data]);
 }
 
+/** Active service type names in schedule order (built-in list until loaded). */
 export function useServiceTypeNames(): string[] {
   const { data } = useServiceTypes();
   // Same array until the types change (callers may use it in deps or as data).
@@ -471,6 +473,31 @@ export const useUpdateServiceType = () =>
         patchLists<ServiceType>(qc, keys.serviceTypes, (rows) => rows.map((t) => (t.id === id ? { ...t, ...body } : t))),
     },
   );
+
+/** Our staff: the showroom's people (sales, spares, mechanics). */
+export const useShowroomStaff = () => useQuery(queries.showroomStaff());
+
+export interface ShowroomStaffInput {
+  name: string;
+  category: StaffCategory;
+  mobile_number?: string | null;
+  active?: boolean;
+}
+
+export const useCreateShowroomStaff = () =>
+  useCrmMutation((body: ShowroomStaffInput) => api<{ message: string; id: number }>("/api/showroom-staff", { method: "POST", body }), {
+    success: "Added to Our staff",
+  });
+
+export const useUpdateShowroomStaff = () =>
+  useCrmMutation(({ id, ...body }: Partial<ShowroomStaffInput> & { id: number }) =>
+    api(`/api/showroom-staff/${id}`, { method: "PATCH", body }),
+  );
+
+export const useDeleteShowroomStaff = () =>
+  useCrmMutation((id: number) => api(`/api/showroom-staff/${id}`, { method: "DELETE" }), {
+    optimistic: (qc, id) => patchLists<ShowroomStaff>(qc, keys.showroomStaff, (rows) => rows.filter((p) => p.id !== id)),
+  });
 
 export const useDeleteServiceType = () =>
   useCrmMutation((id: number) => api(`/api/service-types/${id}`, { method: "DELETE" }), {

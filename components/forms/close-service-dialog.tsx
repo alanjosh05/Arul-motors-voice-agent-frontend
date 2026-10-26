@@ -4,6 +4,7 @@ import { addDays } from "date-fns";
 import { AlertTriangle, FileText, Plus, Sparkles, Trash2, Upload, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { DatePicker } from "@/components/date-picker";
+import { StaffPicker } from "@/components/staff-picker";
 import { FormDialog } from "@/components/forms/form-dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -612,7 +613,8 @@ export function CloseServiceDialog({
             </Field>
             <Field>
               <FieldLabel htmlFor="cs-mech">Mechanic</FieldLabel>
-              <Input id="cs-mech" value={mechanic} onChange={(e) => setMechanic(e.target.value)} placeholder="Optional" />
+              {/* Our staff's mechanics: type to filter; a name read off the card can be kept. */}
+              <StaffPicker id="cs-mech" category="Mechanic" value={mechanic} onChange={setMechanic} placeholder="Choose the mechanic" />
             </Field>
             <Field>
               <FieldLabel htmlFor="cs-sup">Supervisor</FieldLabel>
