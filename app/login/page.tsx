@@ -68,13 +68,13 @@ export default function LoginPage() {
             </p>
           </div>
         </div>
-        <p className="relative shrink-0 text-xs text-white/55">© {new Date().getFullYear()} Arul Motors, Nazareth · Thoothukudi district</p>
+        
       </aside>
 
       <main className="relative flex flex-col items-center justify-center p-6 sm:p-10 lg:overflow-y-auto">
         {/* The full logo already reads ARUL MOTORS · NAZARETH · YAMAHA. In the
-            flow on phones (so it can't cover the form), pinned top-right above. */}
-        <BrandMark full className="mb-6 h-20 w-auto self-end drop-shadow-sm sm:absolute sm:top-6 sm:right-6 sm:mb-0 lg:top-8 lg:right-8 lg:h-24 [@media(max-height:720px)]:h-16" />
+            flow on phones (so it can't cover the form), pinned top-left above. */}
+        <BrandMark full className="mb-6 h-14 w-auto self-start drop-shadow-sm sm:absolute sm:top-6 sm:left-6 sm:mb-0 lg:top-8 lg:left-8 lg:h-16 [@media(max-height:720px)]:h-12" />
         <div className="w-full max-w-sm space-y-8">
           
           <div className="space-y-1.5">
