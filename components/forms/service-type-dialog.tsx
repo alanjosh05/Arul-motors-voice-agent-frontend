@@ -37,7 +37,8 @@ export function ServiceTypeDialog({
   const [overdue, setOverdue] = useState(draft.get("overdue", serviceType?.overdue_days != null ? String(serviceType.overdue_days) : ""));
   const [price, setPrice] = useState(draft.get("price", serviceType?.price != null ? String(serviceType.price) : ""));
   const [active, setActive] = useState(draft.get("active", serviceType?.active ?? true));
-  useAutosaveDraft(draftKey, { name, description, isFree, scheduled, days, km, overdue, price, active });
+  const [repair, setRepair] = useState(draft.get("repair", serviceType?.is_repair ?? false));
+  useAutosaveDraft(draftKey, { name, description, isFree, scheduled, days, km, overdue, price, active, repair });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const create = useCreateServiceType();
   const update = useUpdateServiceType();
@@ -45,7 +46,7 @@ export function ServiceTypeDialog({
   async function submit() {
     const next: Record<string, string> = {};
     if (!name.trim()) next.name = "Enter a name.";
-    if (scheduled && !(Number(days) > 0)) next.days = "Enter how many days until it's due.";
+    if (scheduled && !repair && !(Number(days) > 0)) next.days = "Enter how many days until it's due.";
     if (km && !/^\d+$/.test(km)) next.km = "Kilometres as a whole number.";
     if (overdue && !/^\d+$/.test(overdue)) next.overdue = "Days as a whole number.";
     if (!isFree && price && !/^\d+$/.test(price)) next.price = "Price in whole rupees.";
@@ -55,8 +56,10 @@ export function ServiceTypeDialog({
       name: name.trim(),
       description: description.trim() || null,
       is_free: isFree,
-      interval_days: scheduled ? whole(days) : null,
-      interval_km: scheduled ? whole(km) : null,
+      // A repair is never on the schedule.
+      interval_days: scheduled && !repair ? whole(days) : null,
+      interval_km: scheduled && !repair ? whole(km) : null,
+      is_repair: repair,
       price: isFree ? null : whole(price),
       overdue_days: whole(overdue),
       active,
@@ -103,13 +106,21 @@ export function ServiceTypeDialog({
 
         <Field orientation="horizontal" className="rounded-lg border p-3">
           <FieldContent>
+            <FieldTitle>Repair (no follow-up)</FieldTitle>
+            <FieldDescription>E.g. Accident repair: recorded with its job card, but the bike&rsquo;s service schedule doesn&rsquo;t change and the agent never follows up.</FieldDescription>
+          </FieldContent>
+          <Switch checked={repair} onCheckedChange={setRepair} aria-label="Repair" />
+        </Field>
+
+        {!repair && <Field orientation="horizontal" className="rounded-lg border p-3">
+          <FieldContent>
             <FieldTitle>Part of the service schedule</FieldTitle>
             <FieldDescription>Falls due a set time after the previous service. Off = on demand only.</FieldDescription>
           </FieldContent>
           <Switch checked={scheduled} onCheckedChange={setScheduled} aria-label="Scheduled" />
-        </Field>
+        </Field>}
 
-        {scheduled && (
+        {scheduled && !repair && (
           <div className="grid gap-4 sm:grid-cols-2">
             <Field data-invalid={!!errors.days}>
               <FieldLabel htmlFor="st-days">Due after</FieldLabel>

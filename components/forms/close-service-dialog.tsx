@@ -23,6 +23,7 @@ import {
   useCloseService,
   useExtractJobCard,
   useRecordWalkInService,
+  useScheduleTypeNames,
   useUpdateServiceRecord,
   useServiceTypeNames,
   useServiceTypes,
@@ -35,7 +36,7 @@ const DEFAULT_INTERVAL_DAYS = 90;
 // Repairs don't move the service schedule (e.g. an accident a few days after
 // a service): their next service stays as it is.
 const REPAIR_JOBS = ["Accidental", "Quick repair", "Warranty repair"];
-const REPAIR_SERVICES = ["Accident repair", "Repair"];
+const OIL_CHANGE = "Engine oil change";
 type Schedule = "set" | "pending" | "keep";
 const MAX_PDF_MB = 10; // database.MAX_PDF_BYTES
 
@@ -89,7 +90,10 @@ export function CloseServiceDialog({
   const editing = !!record;
   const { data: types } = useServiceTypes();
   const { data: vehicles } = useVehicles();
-  const serviceTypes = useServiceTypeNames();
+  const serviceTypes = useServiceTypeNames(); // what the visit can be (repairs too)
+  const scheduleTypes = useScheduleTypeNames(); // what can come next (no repairs)
+  // Repair types (Service types page), e.g. Accident repair: no follow-up.
+  const repairTypes = (types ?? []).filter((t) => t.is_repair).map((t) => t.name);
   const close = useCloseService();
   const recordWalkIn = useRecordWalkInService();
   const update = useUpdateServiceRecord();
@@ -116,9 +120,10 @@ export function CloseServiceDialog({
   // staff already picked the service).
   const chooseJobType = (value: string) => {
     setJobType(value);
-    if (REPAIR_JOBS.includes(value) && serviceType === bookedType && !editing)
-      setServiceType(value === "Accidental" ? "Accident repair" : "Repair");
-    else if (!REPAIR_JOBS.includes(value) && REPAIR_SERVICES.includes(serviceType) && !editing) setServiceType(bookedType);
+    if (editing) return;
+    const repairType = value === "Accidental" ? repairTypes.find((n) => /accident/i.test(n)) ?? repairTypes[0] : null;
+    if (repairType && serviceType === bookedType) setServiceType(repairType);
+    else if (!REPAIR_JOBS.includes(value) && repairTypes.includes(serviceType)) setServiceType(bookedType);
   };
   const [receivedDate, setReceivedDate] = useState<string | null>(
     draft.get("receivedDate", r ? (r.received_date ?? null) : booked <= today ? booked : today),
@@ -152,8 +157,12 @@ export function CloseServiceDialog({
   // the delivery date, until staff pick something else (edit: as saved).
   const [nextTypeChoice, setNextType] = useState<string | null>(draft.get("nextType", r?.next_service_type ?? null));
   const [nextDateChoice, setNextDate] = useState<string | null | undefined>(draft.get("nextDate", r ? (r.next_service_date ?? null) : undefined));
-  // null = follow the job type (a repair keeps the schedule).
-  const [scheduleChoice, setSchedule] = useState<Schedule | null>(draft.get("schedule", (r?.schedule as Schedule | null | undefined) ?? null));
+  // null = automatic: a repair keeps the schedule; otherwise the next date is
+  // set only if the engine oil was changed. Editing starts from what was saved
+  // (older records: "set"); ticking/unticking the oil change goes automatic.
+  const [scheduleChoice, setSchedule] = useState<Schedule | null>(
+    draft.get("schedule", r ? ((r.schedule as Schedule | null | undefined) ?? "set") : null),
+  );
   const [file, setFile] = useState<File | null>(null);
   // What reading the job card filled in, and anything to double-check.
   const [readNote, setReadNote] = useState<{ filled: number; warnings: string[]; failed?: boolean } | null>(null);
@@ -173,12 +182,15 @@ export function CloseServiceDialog({
 
   const from = deliveredDate ?? today;
   const intervalFor = (name: string) => types?.find((t) => t.name === name)?.interval_days ?? DEFAULT_INTERVAL_DAYS;
-  const schedule: Schedule = scheduleChoice ?? (REPAIR_JOBS.includes(jobType) ? "keep" : "set");
+  const oilChanged = jobsDone.includes(OIL_CHANGE);
+  const repairVisit = repairTypes.includes(serviceType); // always "keep": no follow-up
+  const schedule: Schedule = repairVisit
+    ? "keep"
+    : (scheduleChoice ?? (REPAIR_JOBS.includes(jobType) ? "keep" : oilChanged ? "set" : "pending"));
   const suggested = nextScheduledType(types, serviceType);
   // A bike waiting for its oil change: this visit sets that service's date.
   const waiting = !editing && bike?.next_due_pending ? bike.next_service_type : null;
-  const nextType = nextTypeChoice ?? waiting ?? suggested?.name ?? serviceType;
-  const oilChanged = jobsDone.includes("Engine oil change");
+  const nextType = nextTypeChoice ?? waiting ?? suggested?.name ?? scheduleTypes[0] ?? serviceType;
   const nextDate = nextDateChoice !== undefined ? nextDateChoice : toISO(addDays(new Date(`${from}T00:00:00`), intervalFor(nextType)));
   const chooseNextType = (name: string) => {
     setNextType(name);
@@ -327,9 +339,9 @@ export function CloseServiceDialog({
     onOpenChange(false);
   }
 
-  const typeOptions = (current: string) => [...new Set([...serviceTypes, ...(current ? [current] : [])])];
-  // The visit itself can also be a repair (not one of the scheduled services).
-  const visitOptions = (current: string) => [...new Set([...serviceTypes, ...REPAIR_SERVICES, ...(current ? [current] : [])])];
+  // Next service: never a repair. The visit itself can be any type.
+  const typeOptions = (current: string) => [...new Set([...scheduleTypes, ...(current && !repairTypes.includes(current) ? [current] : [])])];
+  const visitOptions = (current: string) => [...new Set([...serviceTypes, ...(current ? [current] : [])])];
 
   return (
     <FormDialog
@@ -483,7 +495,14 @@ export function CloseServiceDialog({
             <div className="grid gap-2 sm:grid-cols-4">
               {JOBS_DONE.map((job) => (
                 <label key={job} className="flex items-center gap-2 text-sm">
-                  <Checkbox checked={jobsDone.includes(job)} onCheckedChange={(on) => setJobsDone((list) => toggle(list, job, on === true))} />
+                  <Checkbox
+                    checked={jobsDone.includes(job)}
+                    onCheckedChange={(on) => {
+                      setJobsDone((list) => toggle(list, job, on === true));
+                      // Oil changed or not decides whether the next date can be set.
+                      if (job === OIL_CHANGE && schedule !== "keep") setSchedule(null);
+                    }}
+                  />
                   {job}
                 </label>
               ))}
@@ -615,12 +634,13 @@ export function CloseServiceDialog({
             value={schedule}
             onValueChange={(v) => v && setSchedule(v as Schedule)}
           >
-            <ToggleGroupItem value="set" className="flex-1">Set the date</ToggleGroupItem>
-            <ToggleGroupItem value="pending" className="flex-1">After the oil change</ToggleGroupItem>
+            <ToggleGroupItem value="set" className="flex-1" disabled={repairVisit}>Set the date</ToggleGroupItem>
+            <ToggleGroupItem value="pending" className="flex-1" disabled={repairVisit}>After the oil change</ToggleGroupItem>
             <ToggleGroupItem value="keep" className="flex-1">Keep as it is (repair)</ToggleGroupItem>
           </ToggleGroup>
           {schedule === "keep" ? (
             <FieldDescription>
+              {repairVisit && <strong className="font-medium text-foreground">{serviceType}: no follow-up. </strong>}
               A repair visit (e.g. after an accident): the bike&rsquo;s service schedule doesn&rsquo;t change
               {bike ? ` (${bike.next_service_type}${bike.next_due_pending ? ", after the oil change" : `, due ${formatDay(bike.next_service_date)}`})` : ""}.
               Only the odometer and frame/engine numbers are updated.
@@ -656,7 +676,7 @@ export function CloseServiceDialog({
                   ? "The engine oil wasn't changed: the agent won't call about this bike until the visit where the oil is changed sets the date."
                   : "The bike moves to this service, and the agent follows up when it’s due."}
               </FieldDescription>
-              {schedule === "set" && !oilChanged && !editing && (
+              {schedule === "set" && !oilChanged && (
                 <FieldDescription className="text-amber-700 dark:text-amber-400">
                   &ldquo;Engine oil change&rdquo; isn&rsquo;t ticked. If the oil wasn&rsquo;t changed, choose &ldquo;After the oil change&rdquo;.
                 </FieldDescription>

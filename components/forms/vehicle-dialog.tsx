@@ -10,7 +10,7 @@ import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/c
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { todayISO } from "@/lib/format";
-import { useAddVehicle, useServiceTypeNames, useUpdateVehicle } from "@/lib/queries";
+import { useAddVehicle, useScheduleTypeNames, useUpdateVehicle } from "@/lib/queries";
 import type { Customer, Vehicle } from "@/lib/types";
 
 /** Add a bike to a customer, or edit an existing bike. */
@@ -45,7 +45,7 @@ export function VehicleDialog({
   const [frame, setFrame] = useState(draft.get("frame", vehicle?.frame_number ?? ""));
   const [engine, setEngine] = useState(draft.get("engine", vehicle?.engine_number ?? ""));
   const [nextDate, setNextDate] = useState<string | null>(draft.get("nextDate", vehicle?.next_service_date ?? null));
-  const serviceTypes = useServiceTypeNames();
+  const serviceTypes = useScheduleTypeNames(); // a repair is never the next service
   const [nextType, setNextType] = useState(draft.get("nextType", vehicle?.next_service_type ?? serviceTypes[0]));
   useAutosaveDraft(draftKey, { model, registration, elsewhere, dealer, purchase, lastService, odometer, frame, engine, nextDate, nextType });
   const [errors, setErrors] = useState<Record<string, string>>({});

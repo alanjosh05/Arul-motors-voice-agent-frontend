@@ -10,7 +10,7 @@ import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldSepar
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { todayISO } from "@/lib/format";
-import { useAddVehicle, useCreateCustomer, useServiceTypeNames, useUpdateCustomer } from "@/lib/queries";
+import { useAddVehicle, useCreateCustomer, useScheduleTypeNames, useUpdateCustomer } from "@/lib/queries";
 import type { Customer } from "@/lib/types";
 
 const digits = (v: string) => v.replace(/\D/g, "");
@@ -45,7 +45,7 @@ export function CustomerDialog({
     setPurchase(value ? null : todayISO()); // usually not known for another dealer
   };
   const [nextDate, setNextDate] = useState<string | null>(draft.get("nextDate", null));
-  const serviceTypes = useServiceTypeNames();
+  const serviceTypes = useScheduleTypeNames(); // a repair is never the next service
   const [nextType, setNextType] = useState(draft.get("nextType", serviceTypes[0]));
   useAutosaveDraft(draftKey, { name, mobile, alternate, model, registration, elsewhere, dealer, purchase, nextDate, nextType });
   const [errors, setErrors] = useState<Record<string, string>>({});

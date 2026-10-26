@@ -110,6 +110,7 @@ export default function ServiceTypesPage() {
                   </TableCell>
                   <TableCell>
                     {t.is_free ? <ToneBadge tone="green">Free</ToneBadge> : <ToneBadge tone="blue">Paid</ToneBadge>}
+                    {t.is_repair && <ToneBadge tone="violet">Repair · no follow-up</ToneBadge>}
                   </TableCell>
                   <TableCell>
                     {dueAfter(t) ? (

@@ -138,6 +138,8 @@ export interface ServiceType {
   overdue_days: number | null; // days after the due date before it's overdue (null = 0)
   sort_order: number;
   active: boolean;
+  /** A repair (e.g. Accident repair): recorded, never on the schedule, no follow-up. */
+  is_repair?: boolean;
   bikes_due: number;
   bookings: number;
 }

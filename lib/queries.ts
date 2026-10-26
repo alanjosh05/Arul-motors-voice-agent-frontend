@@ -191,6 +191,15 @@ export const fetchVoiceConfig = () => api<VoiceConfig>("/api/voice/config");
 export const useServiceTypes = () => useQuery(queries.serviceTypes());
 
 /** Active service type names in schedule order (built-in list until loaded). */
+/** Types a bike can have as its next service: active, and not repairs. */
+export function useScheduleTypeNames(): string[] {
+  const { data } = useServiceTypes();
+  return useMemo(() => {
+    const names = data?.filter((t) => t.active && !t.is_repair).map((t) => t.name);
+    return names?.length ? names : SERVICE_TYPES;
+  }, [data]);
+}
+
 export function useServiceTypeNames(): string[] {
   const { data } = useServiceTypes();
   // Same array until the types change (callers may use it in deps or as data).
@@ -448,6 +457,7 @@ export interface ServiceTypeInput {
   price?: number | null;
   overdue_days?: number | null;
   active: boolean;
+  is_repair?: boolean;
 }
 
 export const useCreateServiceType = () =>
