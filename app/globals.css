@@ -92,6 +92,8 @@
     --art-light: oklch(0.93 0.006 264);
     --art-ink: oklch(0.24 0.02 280);
     --art-ink-soft: oklch(0.36 0.03 280);
+    --art-tint: oklch(0.9 0.05 255);
+    --art-tint-soft: oklch(0.95 0.025 240);
 }
 
 .dark {
@@ -132,6 +134,8 @@
     --art-light: oklch(0.36 0.016 264);
     --art-ink: oklch(0.5 0.03 280);
     --art-ink-soft: oklch(0.6 0.03 280);
+    --art-tint: oklch(0.36 0.07 262);
+    --art-tint-soft: oklch(0.27 0.04 262);
 }
 
 @layer base {
