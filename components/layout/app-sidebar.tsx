@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { NAV } from "@/components/layout/nav";
 import { pop, useAnime } from "@/lib/motion";
@@ -130,9 +130,6 @@ function UserMenu() {
   );
 }
 
-const HOVER_OPEN_MS = 150;
-const CLOSE_MS = 5000;
-
 /** A nav badge that pops when its count changes. */
 function NavBadge({ count }: { count: number }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -198,26 +195,7 @@ export function AppSidebar() {
     [pathname],
   );
   const { data: stats } = useStats();
-  const { setOpenMobile, setPeek } = useSidebar();
-  // Collapsed by default: hovering opens it over the page; it closes CLOSE_MS
-  // after the pointer leaves (unless pinned open with ⌘B / the header button).
-  const timers = useRef<{ open?: ReturnType<typeof setTimeout>; close?: ReturnType<typeof setTimeout> }>({});
-  useEffect(() => {
-    const t = timers.current;
-    return () => {
-      clearTimeout(t.open);
-      clearTimeout(t.close);
-    };
-  }, []);
-  const hoverIn = () => {
-    clearTimeout(timers.current.close);
-    // A short pause, so passing over the sidebar doesn't open it.
-    timers.current.open = setTimeout(() => setPeek(true), HOVER_OPEN_MS);
-  };
-  const hoverOut = () => {
-    clearTimeout(timers.current.open);
-    timers.current.close = setTimeout(() => setPeek(false), CLOSE_MS);
-  };
+  const { setOpenMobile } = useSidebar();
   const queryClient = useQueryClient();
   const badges = {
     due: stats?.totals.due_this_week,
@@ -226,7 +204,7 @@ export function AppSidebar() {
   const groups = [...new Set(NAV.map((item) => item.group))];
 
   return (
-    <Sidebar collapsible="icon" variant="inset" onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
+    <Sidebar collapsible="icon" variant="inset">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
