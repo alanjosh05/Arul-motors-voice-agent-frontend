@@ -5,33 +5,32 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useShowroomStaff } from "@/lib/queries";
-import type { StaffCategory } from "@/lib/types";
+import { useShowroomStaff, useStaffCategories } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 const tidy = (text: string) => text.replace(/\s+/g, " ").trim();
 
-/** Pick someone from Our staff in one category (e.g. the job card's mechanic):
- * type to filter the list. A name that isn't listed (as read off a job card)
- * can still be used as typed. */
-export function StaffPicker({
-  category,
+/** The job card's mechanic: someone from Our staff in a "job card mechanics"
+ * category (Mechanic to start). Type to filter the list. A name that isn't
+ * listed (as read off a job card) can still be used as typed. */
+export function MechanicPicker({
   value,
   onChange,
   id,
   placeholder,
 }: {
-  category: StaffCategory;
   value: string;
   onChange: (name: string) => void;
   id?: string;
   placeholder?: string;
 }) {
   const { data } = useShowroomStaff();
+  const { data: categories } = useStaffCategories();
+  const mechanicCategories = new Set((categories ?? []).filter((c) => c.is_mechanic).map((c) => c.name));
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const typed = tidy(search);
-  const people = (data ?? []).filter((p) => p.category === category && p.active);
+  const people = (data ?? []).filter((p) => mechanicCategories.has(p.category) && p.active);
   const shown = typed ? people.filter((p) => p.name.toLowerCase().includes(typed.toLowerCase())) : people;
   const known = people.some((p) => p.name.toLowerCase() === typed.toLowerCase());
   const listed = !value || people.some((p) => p.name.toLowerCase() === value.toLowerCase());
@@ -55,7 +54,7 @@ export function StaffPicker({
             className={cn("h-9 w-full justify-between font-normal", value && "pr-9")}
           >
             <span className={cn("truncate", !value && "text-muted-foreground")}>
-              {value || placeholder || `Choose a ${category.toLowerCase()}…`}
+              {value || placeholder || "Choose the mechanic"}
               {!listed && <span className="ml-1 text-xs text-muted-foreground">(not in Our staff)</span>}
             </span>
             {!value && <ChevronsUpDown className="opacity-50" />}
@@ -75,15 +74,15 @@ export function StaffPicker({
       </div>
       <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
         <Command shouldFilter={false}>
-          <CommandInput placeholder={`Type a ${category.toLowerCase()}'s name…`} value={search} onValueChange={setSearch} />
+          <CommandInput placeholder="Type a mechanic's name…" value={search} onValueChange={setSearch} />
           <CommandList>
             {!typed && people.length === 0 && (
               <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                No {category.toLowerCase()}s in Our staff yet. An admin can add them; or type a name.
+                No mechanics in Our staff yet. An admin can add them; or type a name.
               </p>
             )}
             {shown.length > 0 && (
-              <CommandGroup heading={`${category}s`}>
+              <CommandGroup heading="Mechanics">
                 {shown.map((p) => (
                   <CommandItem key={p.id} value={String(p.id)} onSelect={() => choose(p.name)}>
                     <Check className={cn(value.toLowerCase() === p.name.toLowerCase() ? "opacity-100" : "opacity-0")} />

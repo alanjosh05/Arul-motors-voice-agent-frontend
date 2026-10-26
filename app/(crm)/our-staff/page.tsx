@@ -1,10 +1,10 @@
 "use client";
 
-import { Ellipsis, Pencil, Plus, Trash2, UserRound } from "lucide-react";
+import { Ellipsis, Pencil, Plus, Tags, Trash2, UserRound } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { ShowroomStaffDialog } from "@/components/forms/lazy";
+import { ShowroomStaffDialog, StaffCategoriesDialog } from "@/components/forms/lazy";
 import { PageHeader } from "@/components/page-header";
 import { ToneBadge } from "@/components/status-badges";
 import { Button } from "@/components/ui/button";
@@ -15,25 +15,33 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatMobile } from "@/lib/format";
-import { useDeleteShowroomStaff, useShowroomStaff } from "@/lib/queries";
-import { STAFF_CATEGORIES, type ShowroomStaff, type StaffCategory } from "@/lib/types";
+import { useDeleteShowroomStaff, useShowroomStaff, useStaffCategories } from "@/lib/queries";
+import type { ShowroomStaff, StaffCategory } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const TONE = { Sales: "blue", Spares: "amber", Mechanic: "violet" } as const;
+// A colour per category, in the categories' order.
+const TONES = ["blue", "amber", "violet", "green", "red", "gray"] as const;
 
 /** The showroom's people: sales, spares and mechanics (admins manage them).
- * Not CRM logins (Settings → Team). Mechanics fill the job card's mechanic. */
+ * Not CRM logins (Settings → Team). Admins also manage the categories; staff
+ * in a "job card mechanics" category fill the job card's mechanic. */
 export default function OurStaffPage() {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
   const { data, isLoading } = useShowroomStaff();
+  const { data: categoryRows } = useStaffCategories();
+  const categories = (categoryRows ?? []).map((c) => c.name);
+  const tone = (category: string) => TONES[Math.max(0, categories.indexOf(category)) % TONES.length];
+  const [managing, setManaging] = useState(false);
   const [tab, setTab] = useState<"all" | StaffCategory>("all");
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<ShowroomStaff | null>(null);
   const [deleting, setDeleting] = useState<ShowroomStaff | null>(null);
   const people = data ?? [];
-  const count = (c: "all" | StaffCategory) => (c === "all" ? people.length : people.filter((p) => p.category === c).length);
-  const shown = tab === "all" ? people : people.filter((p) => p.category === tab);
+  const count = (c: string) => (c === "all" ? people.length : people.filter((p) => p.category === c).length);
+  // A tab whose category was just deleted or renamed: back to All.
+  const current = tab === "all" || categories.includes(tab) ? tab : "all";
+  const shown = current === "all" ? people : people.filter((p) => p.category === current);
 
   return (
     <>
@@ -41,21 +49,26 @@ export default function OurStaffPage() {
         title="Our staff"
         description={
           data
-            ? STAFF_CATEGORIES.map((c) => `${count(c)} ${c.toLowerCase()}`).join(" · ")
+            ? categories.map((c) => `${count(c)} ${c.toLowerCase()}`).join(" · ")
             : "The showroom’s sales, spares and workshop people."
         }
         actions={
           isAdmin && (
-            <Button onClick={() => setAdding(true)}>
-              <Plus /> Add staff
-            </Button>
+            <>
+              <Button variant="outline" onClick={() => setManaging(true)}>
+                <Tags /> Categories
+              </Button>
+              <Button onClick={() => setAdding(true)}>
+                <Plus /> Add staff
+              </Button>
+            </>
           )
         }
       />
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
+      <Tabs value={current} onValueChange={(v) => setTab(v)}>
         <TabsList className="h-auto flex-wrap">
-          {(["all", ...STAFF_CATEGORIES] as const).map((c) => (
+          {["all", ...categories].map((c) => (
             <TabsTrigger key={c} value={c} className="gap-1.5">
               {c === "all" ? "All" : c}
               <span className="tabular rounded-full bg-muted px-1.5 text-xs text-muted-foreground group-data-[state=active]:bg-primary/10">
@@ -92,7 +105,7 @@ export default function OurStaffPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <ToneBadge tone={TONE[p.category]}>{p.category}</ToneBadge>
+                    <ToneBadge tone={tone(p.category)}>{p.category}</ToneBadge>
                   </TableCell>
                   <TableCell className="tabular text-sm">{p.mobile_number ? formatMobile(p.mobile_number) : "—"}</TableCell>
                   <TableCell>
@@ -128,7 +141,7 @@ export default function OurStaffPage() {
               <EmptyMedia variant="icon">
                 <UserRound />
               </EmptyMedia>
-              <EmptyTitle>{tab === "all" ? "No staff yet" : `No ${tab.toLowerCase()} staff yet`}</EmptyTitle>
+              <EmptyTitle>{current === "all" ? "No staff yet" : `No ${current.toLowerCase()} staff yet`}</EmptyTitle>
               <EmptyDescription>
                 {isAdmin
                   ? "Add the showroom’s sales, spares and mechanic staff. Mechanics then appear on job cards."
@@ -147,9 +160,10 @@ export default function OurStaffPage() {
       </Card>
 
       {adding && (
-        <ShowroomStaffDialog open={adding} onOpenChange={setAdding} category={tab === "all" ? undefined : tab} />
+        <ShowroomStaffDialog open={adding} onOpenChange={setAdding} category={current === "all" ? undefined : current} />
       )}
       {editing && <ShowroomStaffDialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)} person={editing} />}
+      {managing && <StaffCategoriesDialog open={managing} onOpenChange={setManaging} />}
       {deleting && (
         <DeleteStaff person={deleting} onDone={() => setDeleting(null)} />
       )}

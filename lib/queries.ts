@@ -19,7 +19,7 @@ import type {
   ServiceType,
   StaffUser,
   Vehicle,
-  VoiceConfig, ShowroomStaff, StaffCategory } from "./types";
+  VoiceConfig, ShowroomStaff, StaffCategory, StaffCategoryRow } from "./types";
 
 export const keys = {
   stats: ["stats"] as const,
@@ -32,6 +32,7 @@ export const keys = {
   staff: ["staff"] as const,
   serviceTypes: ["service-types"] as const,
   showroomStaff: ["showroom-staff"] as const,
+  staffCategories: ["staff-categories"] as const,
   voiceStatus: ["voice-status"] as const,
   settings: ["settings"] as const,
   serviceHistory: (vehicleId: number) => ["service-history", vehicleId] as const,
@@ -52,6 +53,7 @@ export const queries = {
   appointments: () => ({ queryKey: keys.appointments, queryFn: () => api<Appointment[]>("/api/appointments") }),
   calls: () => ({ queryKey: keys.calls, queryFn: () => api<CallLog[]>("/api/calls", { query: { limit: CALL_LOG_LIMIT } }) }),
   callCount: () => ({ queryKey: [...keys.calls, "count"], queryFn: () => api<{ total: number }>("/api/calls/count") }),
+  staffCategories: () => ({ queryKey: keys.staffCategories, queryFn: () => api<StaffCategoryRow[]>("/api/staff-categories"), staleTime: 300_000 }),
   showroomStaff: () => ({ queryKey: keys.showroomStaff, queryFn: () => api<ShowroomStaff[]>("/api/showroom-staff"), staleTime: 300_000 }),
   serviceTypes: () => ({ queryKey: keys.serviceTypes, queryFn: () => api<ServiceType[]>("/api/service-types"), staleTime: 300_000 }),
   settings: () => ({ queryKey: keys.settings, queryFn: () => api<AppSettings>("/api/settings"), staleTime: 300_000 }),
@@ -66,7 +68,7 @@ const PAGE_QUERIES: Record<string, (() => { queryKey: readonly unknown[]; queryF
   "/appointments/": [queries.appointments],
   "/calls/": [queries.calls, queries.callCount],
   "/service-types/": [queries.serviceTypes],
-  "/our-staff/": [queries.showroomStaff],
+  "/our-staff/": [queries.showroomStaff, queries.staffCategories],
   "/settings/": [queries.settings],
 };
 
@@ -493,6 +495,19 @@ export const useUpdateShowroomStaff = () =>
   useCrmMutation(({ id, ...body }: Partial<ShowroomStaffInput> & { id: number }) =>
     api(`/api/showroom-staff/${id}`, { method: "PATCH", body }),
   );
+
+export const useStaffCategories = () => useQuery(queries.staffCategories());
+
+export const useCreateStaffCategory = () =>
+  useCrmMutation((body: { name: string; is_mechanic?: boolean }) =>
+    api<{ message: string; id: number }>("/api/staff-categories", { method: "POST", body }), { success: "Category added" });
+
+export const useUpdateStaffCategory = () =>
+  useCrmMutation(({ id, ...body }: { id: number; name?: string; is_mechanic?: boolean }) =>
+    api(`/api/staff-categories/${id}`, { method: "PATCH", body }));
+
+export const useDeleteStaffCategory = () =>
+  useCrmMutation((id: number) => api(`/api/staff-categories/${id}`, { method: "DELETE" }), { success: "Category deleted" });
 
 export const useDeleteShowroomStaff = () =>
   useCrmMutation((id: number) => api(`/api/showroom-staff/${id}`, { method: "DELETE" }), {

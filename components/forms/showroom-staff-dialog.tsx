@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useAutosaveDraft, useFormDraft } from "@/lib/drafts";
-import { useCreateShowroomStaff, useUpdateShowroomStaff } from "@/lib/queries";
-import { STAFF_CATEGORIES, type ShowroomStaff, type StaffCategory } from "@/lib/types";
+import { useCreateShowroomStaff, useStaffCategories, useUpdateShowroomStaff } from "@/lib/queries";
+import type { ShowroomStaff, StaffCategory } from "@/lib/types";
 
 const digits = (v: string) => v.replace(/\D/g, "");
 
@@ -29,10 +29,13 @@ export function ShowroomStaffDialog({
   const draftKey = editing ? `showroom-staff:${person.id}` : "showroom-staff:new";
   const draft = useFormDraft(draftKey);
   const [name, setName] = useState(draft.get("name", person?.name ?? ""));
-  const [category, setCategory] = useState<StaffCategory>(draft.get("category", person?.category ?? initialCategory ?? "Mechanic"));
+  const { data: categories } = useStaffCategories();
+  const [categoryChoice, setCategory] = useState<StaffCategory | null>(draft.get("category", person?.category ?? initialCategory ?? null));
+  // New person: the mechanics' category to start with (most often added).
+  const category = categoryChoice ?? categories?.find((c) => c.is_mechanic)?.name ?? categories?.[0]?.name ?? "";
   const [mobile, setMobile] = useState(draft.get("mobile", person?.mobile_number ?? ""));
   const [active, setActive] = useState(draft.get("active", person?.active ?? true));
-  useAutosaveDraft(draftKey, { name, category, mobile, active });
+  useAutosaveDraft(draftKey, { name, category: categoryChoice, mobile, active });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const create = useCreateShowroomStaff();
   const update = useUpdateShowroomStaff();
@@ -40,6 +43,7 @@ export function ShowroomStaffDialog({
   async function submit() {
     const next: Record<string, string> = {};
     if (!name.trim()) next.name = "Enter the name.";
+    if (!category) next.category = "Pick a category.";
     if (mobile.trim() && digits(mobile).length < 10) next.mobile = "Enter a 10-digit number, or leave it empty.";
     setErrors(next);
     if (Object.keys(next).length) return;
@@ -67,21 +71,22 @@ export function ShowroomStaffDialog({
           <Input id="ss-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Kumar" aria-invalid={!!errors.name} autoFocus />
           <FieldError>{errors.name}</FieldError>
         </Field>
-        <Field>
+        <Field data-invalid={!!errors.category}>
           <FieldLabel>Category</FieldLabel>
           <ToggleGroup
             type="single"
             variant="outline"
-            className="w-full"
+            className="w-full flex-wrap"
             value={category}
-            onValueChange={(v) => v && setCategory(v as StaffCategory)}
+            onValueChange={(v) => v && setCategory(v)}
           >
-            {STAFF_CATEGORIES.map((c) => (
-              <ToggleGroupItem key={c} value={c} className="flex-1">
-                {c}
+            {(categories ?? []).map((c) => (
+              <ToggleGroupItem key={c.id} value={c.name} className="flex-1">
+                {c.name}
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
+          <FieldError>{errors.category}</FieldError>
         </Field>
         <Field data-invalid={!!errors.mobile}>
           <FieldLabel htmlFor="ss-mobile">Mobile</FieldLabel>

@@ -127,9 +127,18 @@ export interface DashboardStats {
   recent_services: RecentService[];
 }
 
-/** The showroom's people (page "Our staff"): not CRM logins. */
-export type StaffCategory = "Sales" | "Spares" | "Mechanic";
-export const STAFF_CATEGORIES: StaffCategory[] = ["Sales", "Spares", "Mechanic"];
+/** The showroom's people (page "Our staff"): not CRM logins. Categories are
+ * managed by admins (Sales, Spares and Mechanic to start). */
+export type StaffCategory = string;
+
+export interface StaffCategoryRow {
+  id: number;
+  name: string;
+  /** Its people are the job card's mechanic list. */
+  is_mechanic: boolean;
+  sort_order: number;
+  staff_count: number;
+}
 
 export interface ShowroomStaff {
   id: number;
@@ -172,6 +181,7 @@ export type LiveEntity =
   | "stats"
   | "service_types"
   | "showroom_staff"
+  | "staff_categories"
   | "settings"
   | "service_records";
 
