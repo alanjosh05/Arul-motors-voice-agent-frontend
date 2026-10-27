@@ -223,11 +223,13 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent ref={contentRef}>
-        {groups.map((group) => (
+        {groups.map((group, i) => (
           <SidebarGroup key={group}>
+            {/* Closed (icons only): a short line between sections stands in for their titles. */}
+            {i > 0 && <div aria-hidden className="mx-auto mb-2 hidden h-px w-6 bg-sidebar-border group-data-[collapsible=icon]:block" />}
             <SidebarGroupLabel>{group}</SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu>
+              <SidebarMenu className="group-data-[collapsible=icon]:gap-2">
                 {nav.filter((item) => item.group === group).map((item) => {
                   const active = pathname.startsWith(item.href.replace(/\/$/, ""));
                   const count = item.badge ? badges[item.badge] : undefined;
