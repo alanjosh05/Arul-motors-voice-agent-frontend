@@ -12,6 +12,20 @@ import { useChartBookings, useChartCalls } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 const chartLoading = () => <Skeleton className="h-[240px] w-full rounded-lg" />;
+
+/** Shown when a chart's data couldn't be loaded (instead of an endless placeholder). */
+function ChartError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="grid h-[240px] place-items-center rounded-lg border border-dashed text-center text-sm text-muted-foreground">
+      <div className="space-y-2">
+        <p>Couldn&rsquo;t load this chart.</p>
+        <button type="button" onClick={onRetry} className="font-medium text-primary hover:underline">
+          Try again
+        </button>
+      </div>
+    </div>
+  );
+}
 const BookingsChart = dynamic(() => import("@/components/dashboard/charts").then((m) => m.BookingsChart), { ssr: false, loading: chartLoading });
 const OutcomesChart = dynamic(() => import("@/components/dashboard/charts").then((m) => m.OutcomesChart), { ssr: false, loading: chartLoading });
 const CallsChart = dynamic(() => import("@/components/dashboard/charts").then((m) => m.CallsChart), { ssr: false, loading: chartLoading });
@@ -32,25 +46,27 @@ function RangeHeader({ title, description, range, onRange }: { title: string; de
 export function BookingsCard({ className }: { className?: string }) {
   const [range, setRange] = useState<ChartRange>({ preset: 15 });
   const span = rangeDates(range, "future");
-  const { data, isLoading } = useChartBookings(span);
+  const { data, isLoading, isError, refetch } = useChartBookings(span);
   const total = data?.reduce((sum, d) => sum + d.count, 0) ?? 0;
   return (
     <Card className={className}>
       <RangeHeader title="Bookings" description={`${total} bike${total === 1 ? "" : "s"} booked for ${rangeLabel(range, "future")}`} range={range} onRange={setRange} />
-      <CardContent>{isLoading || !data ? chartLoading() : <BookingsChart data={data} />}</CardContent>
+      <CardContent>{isError && !data ? <ChartError onRetry={() => refetch()} /> : isLoading || !data ? chartLoading() : <BookingsChart data={data} />}</CardContent>
     </Card>
   );
 }
 
 export function OutcomesCard({ className }: { className?: string }) {
   const [range, setRange] = useState<ChartRange>({ preset: 30 });
-  const { data, isLoading } = useChartCalls(rangeDates(range, "past"));
+  const { data, isLoading, isError, refetch } = useChartCalls(rangeDates(range, "past"));
   const outcomes = useMemo(() => (data?.outcomes ?? []).filter((o) => o.count > 0), [data]);
   return (
     <Card className={className}>
       <RangeHeader title="Call outcomes" description={`Agent and staff calls, ${rangeLabel(range, "past")}`} range={range} onRange={setRange} />
       <CardContent>
-        {isLoading || !data ? (
+        {isError && !data ? (
+          <ChartError onRetry={() => refetch()} />
+        ) : isLoading || !data ? (
           chartLoading()
         ) : data.total === 0 ? (
           <Empty className="h-[240px] border-0">
@@ -72,11 +88,11 @@ export function OutcomesCard({ className }: { className?: string }) {
 
 export function CallsCard({ className }: { className?: string }) {
   const [range, setRange] = useState<ChartRange>({ preset: 15 });
-  const { data, isLoading } = useChartCalls(rangeDates(range, "past"));
+  const { data, isLoading, isError, refetch } = useChartCalls(rangeDates(range, "past"));
   return (
     <Card className={cn(className)}>
       <RangeHeader title="Follow-up calls" description={`Calls per day, ${rangeLabel(range, "past")}`} range={range} onRange={setRange} />
-      <CardContent>{isLoading || !data ? chartLoading() : <CallsChart data={data.per_day} />}</CardContent>
+      <CardContent>{isError && !data ? <ChartError onRetry={() => refetch()} /> : isLoading || !data ? chartLoading() : <CallsChart data={data.per_day} />}</CardContent>
     </Card>
   );
 }
