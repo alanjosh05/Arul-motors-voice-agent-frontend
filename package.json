@@ -10,6 +10,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@dicebear/collection": "9.4.2",
+    "@dicebear/core": "9.4.2",
     "@pipecat-ai/client-js": "^1.4.0",
     "@pipecat-ai/client-react": "^1.4.0",
     "@pipecat-ai/small-webrtc-transport": "^1.4.0",
