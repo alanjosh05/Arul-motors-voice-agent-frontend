@@ -19,7 +19,7 @@ import { AppointmentActions, CallButton } from "@/components/actions";
 import { ServiceHistory } from "@/components/service-history";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { CustomerAvatar } from "@/components/customer-avatar";
-import { AppointmentStateBadge, DueBadge, OilChangeBadge, OutcomeBadge, pendingLabel } from "@/components/status-badges";
+import { AppointmentStateBadge, DueBadge, OilChangeBadge, OutcomeBadge, pendingLabel, unknownNext } from "@/components/status-badges";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -101,7 +101,7 @@ function BikeCard({ vehicle, customer }: { vehicle: Vehicle; customer: CustomerD
           <div className="flex items-center justify-between gap-2">
             <div>
               <p className="text-xs text-muted-foreground">Next service</p>
-              <p className="text-sm font-medium">{vehicle.next_service_type}</p>
+              <p className="text-sm font-medium">{unknownNext(vehicle) ? "Not known yet" : vehicle.next_service_type}</p>
             </div>
             {booking ? (
               <Badge className="bg-primary/10 text-primary">Booked {formatDay(booking.appointment_date)}</Badge>
@@ -111,14 +111,17 @@ function BikeCard({ vehicle, customer }: { vehicle: Vehicle; customer: CustomerD
               <DueBadge date={vehicle.next_service_date} serviceType={vehicle.next_service_type} />
             )}
           </div>
-          <Progress value={progress} className="h-1.5" />
-          <p className="text-xs text-muted-foreground">
-            {vehicle.next_due_pending
-              ? pendingLabel(vehicle) === "Set at first visit"
-                ? "Date set at its first visit here"
-                : "Date set at the oil change"
-              : `Due ${formatDay(vehicle.next_service_date)}`} · {step < free.length ? `${step} of ${free.length} free services done` : "Free services completed"}
-          </p>
+          {unknownNext(vehicle) ? (
+            <p className="text-xs text-muted-foreground">Bought elsewhere: its next service is set at its first visit here.</p>
+          ) : (
+            <>
+              <Progress value={progress} className="h-1.5" />
+              <p className="text-xs text-muted-foreground">
+                {vehicle.next_due_pending ? "Date set at the oil change" : `Due ${formatDay(vehicle.next_service_date)}`} ·{" "}
+                {step < free.length ? `${step} of ${free.length} free services done` : "Free services completed"}
+              </p>
+            </>
+          )}
           {!booking && (
             <Button variant="outline" size="sm" className="mt-1 w-full" onClick={() => setDialog("service")}>
               <Wrench /> Record service (walk-in)
@@ -185,9 +188,11 @@ function CustomerProfile() {
 
   const upcoming = customer.appointments.filter((a) => a.state === "upcoming");
   const completed = customer.appointments.filter((a) => a.state === "completed").length;
-  const nextBike = [...customer.vehicles].sort((a, b) => a.next_service_date.localeCompare(b.next_service_date))[0];
+  const nextBike = [...customer.vehicles].sort((a, b) =>
+    (a.next_due_pending ? "9999" : a.next_service_date).localeCompare(b.next_due_pending ? "9999" : b.next_service_date),
+  )[0];
   const subtitle = nextBike
-    ? `${nextBike.model} · ${nextBike.next_service_type} ${nextBike.next_due_pending ? pendingLabel(nextBike).toLowerCase() : `due ${formatDay(nextBike.next_service_date)}`}`
+    ? `${nextBike.model} · ${unknownNext(nextBike) ? "next service" : nextBike.next_service_type} ${nextBike.next_due_pending ? pendingLabel(nextBike).toLowerCase() : `due ${formatDay(nextBike.next_service_date)}`}`
     : undefined;
 
   return (

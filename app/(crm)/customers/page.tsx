@@ -9,14 +9,16 @@ import { CustomerActions } from "@/components/actions";
 import { CustomerAvatar } from "@/components/customer-avatar";
 import { DataTable, SortHeader } from "@/components/data-table";
 import { PageHeader } from "@/components/page-header";
-import { DueBadge, OutcomeBadge } from "@/components/status-badges";
+import { DueBadge, OilChangeBadge, OutcomeBadge, unknownNext } from "@/components/status-badges";
 import { Button } from "@/components/ui/button";
 import { formatDay, formatMobile, timeAgo } from "@/lib/format";
 import { useCustomers, usePrefetchCustomer } from "@/lib/queries";
 import type { Customer } from "@/lib/types";
 import { CustomerDialog } from "@/components/forms/lazy";
 
-const nextDue = (c: Customer) => c.vehicles.map((v) => v.next_service_date).sort()[0] ?? "";
+// Bikes with no date yet (waiting for a first visit or an oil change) sort last.
+const dueKey = (v: Customer["vehicles"][number]) => (v.next_due_pending ? "9999" : v.next_service_date);
+const nextDue = (c: Customer) => c.vehicles.map(dueKey).sort()[0] ?? "";
 
 const columns: ColumnDef<Customer>[] = [
   {
@@ -59,11 +61,11 @@ const columns: ColumnDef<Customer>[] = [
     accessorFn: nextDue,
     header: ({ column }) => <SortHeader column={column} title="Next service" />,
     cell: ({ row }) => {
-      const v = [...row.original.vehicles].sort((a, b) => a.next_service_date.localeCompare(b.next_service_date))[0];
+      const v = [...row.original.vehicles].sort((a, b) => dueKey(a).localeCompare(dueKey(b)))[0];
       return v ? (
         <div className="flex flex-col items-start gap-1">
-          <span className="text-sm">{v.next_service_type}</span>
-          <DueBadge date={v.next_service_date} serviceType={v.next_service_type} />
+          <span className="text-sm">{unknownNext(v) ? "Not known yet" : v.next_service_type}</span>
+          {v.next_due_pending ? <OilChangeBadge vehicle={v} /> : <DueBadge date={v.next_service_date} serviceType={v.next_service_type} />}
         </div>
       ) : (
         "—"

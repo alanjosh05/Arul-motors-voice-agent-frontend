@@ -9,7 +9,7 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { DataTable, SortHeader } from "@/components/data-table";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
-import { DueBadge, OilChangeBadge } from "@/components/status-badges";
+import { DueBadge, OilChangeBadge, unknownNext } from "@/components/status-badges";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -108,7 +108,7 @@ const columns: ColumnDef<Vehicle>[] = [
     cell: ({ row }) => (
       <div className="flex flex-col items-start gap-1">
         <span className="text-sm">
-          {row.original.next_service_type}
+          {unknownNext(row.original) ? "Not known yet" : row.original.next_service_type}
           {!row.original.next_due_pending && <> · <span className="tabular">{formatDay(row.original.next_service_date)}</span></>}
         </span>
         {row.original.next_due_pending ? (
@@ -157,7 +157,7 @@ function ModelOwners({ model, vehicles, onClose }: { model: BikeModel; vehicles:
                 <div className="mt-1 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                   <span className="tabular">{formatMobile(v.mobile_number)}</span>
                   <span>
-                    {v.next_service_type}
+                    {unknownNext(v) ? "Next service set at first visit" : v.next_service_type}
                     {!v.next_due_pending && ` · ${formatDay(v.next_service_date)}`}
                   </span>
                 </div>

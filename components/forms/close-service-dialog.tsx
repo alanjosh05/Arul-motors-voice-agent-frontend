@@ -111,7 +111,8 @@ export function CloseServiceDialog({
   const booked = appointment?.appointment_date ?? today;
   // Walk-in: start from the service the bike is due; staff change it to the
   // one it came for.
-  const bookedType = record?.service_type ?? appointment?.service_type ?? walkIn?.next_service_type ?? "";
+  const bookedType =
+    record?.service_type ?? appointment?.service_type ?? (walkIn && walkIn.next_due_pending !== 2 ? walkIn.next_service_type : "") ?? "";
   const isFree = types?.find((t) => t.name === bookedType)?.is_free;
   const r = record; // edit: open with what was saved
 
@@ -191,7 +192,7 @@ export function CloseServiceDialog({
     : (scheduleChoice ?? (REPAIR_JOBS.includes(jobType) ? "keep" : oilChanged ? "set" : "pending"));
   const suggested = nextScheduledType(types, serviceType);
   // A bike waiting for its oil change: this visit sets that service's date.
-  const waiting = !editing && bike?.next_due_pending ? bike.next_service_type : null;
+  const waiting = !editing && bike?.next_due_pending === 1 ? bike.next_service_type : null;
   const nextType = nextTypeChoice ?? waiting ?? suggested?.name ?? scheduleTypes[0] ?? serviceType;
   const nextDate = nextDateChoice !== undefined ? nextDateChoice : toISO(addDays(new Date(`${from}T00:00:00`), intervalFor(nextType)));
   const chooseNextType = (name: string) => {
@@ -645,7 +646,7 @@ export function CloseServiceDialog({
             <FieldDescription>
               {repairVisit && <strong className="font-medium text-foreground">{serviceType}: no follow-up. </strong>}
               A repair visit (e.g. after an accident): the bike&rsquo;s service schedule doesn&rsquo;t change
-              {bike ? ` (${bike.next_service_type}${bike.next_due_pending ? `, ${pendingLabel(bike).toLowerCase()}` : `, due ${formatDay(bike.next_service_date)}`})` : ""}.
+              {bike ? ` (${bike.next_due_pending === 2 ? "next service" : bike.next_service_type}${bike.next_due_pending ? `, ${pendingLabel(bike).toLowerCase()}` : `, due ${formatDay(bike.next_service_date)}`})` : ""}.
               Only the odometer and frame/engine numbers are updated.
             </FieldDescription>
           ) : (
