@@ -8,12 +8,6 @@ export default function IncomePage() {
     <ComingSoon
       title="Income"
       description="Money coming in: sales, service and spares."
-      plans={[
-        "Bike sales, service bills (from job cards), spares and accessories",
-        "Payment mode: cash, UPI, card, finance",
-        "Daily collection and month totals",
-        "GST on each bill",
-      ]}
     />
   );
 }

@@ -8,12 +8,6 @@ export default function ExpensesPage() {
     <ComingSoon
       title="Expenses"
       description="What the showroom spends, by category."
-      plans={[
-        "Rent, electricity, fuel, purchases, maintenance and more",
-        "Bills and receipts attached to each expense",
-        "Categories the admin can manage",
-        "Month totals by category",
-      ]}
     />
   );
 }

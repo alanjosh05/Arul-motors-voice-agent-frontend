@@ -7,9 +7,9 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 
-/** An accounts page that is provisioned but not built yet: what it will hold,
- * under the "under construction" illustration. Admins only. */
-export function ComingSoon({ title, description, plans }: { title: string; description: string; plans: string[] }) {
+/** An accounts page that is provisioned but not built yet: the "under
+ * construction" illustration and a Coming soon note. Admins only. */
+export function ComingSoon({ title, description }: { title: string; description: string }) {
   const { user } = useAuth();
   if (user?.role !== "admin") {
     return (
@@ -36,16 +36,7 @@ export function ComingSoon({ title, description, plans }: { title: string; descr
                 <CircleDashed className="size-3.5" /> Coming soon
               </span>
               <h2 className="text-xl font-semibold tracking-tight">We&rsquo;re building this page</h2>
-              <p className="text-sm text-muted-foreground">Here&rsquo;s what it will cover:</p>
             </div>
-            <ul className="space-y-2.5">
-              {plans.map((plan) => (
-                <li key={plan} className="flex gap-2.5 text-sm">
-                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
-                  {plan}
-                </li>
-              ))}
-            </ul>
           </div>
         </CardContent>
       </Card>
