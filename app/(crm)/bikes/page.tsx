@@ -1,7 +1,7 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { CalendarPlus, Crown, ExternalLink, Motorbike, Pencil, Plus, Trash2, UserPlus, Users } from "lucide-react";
+import { CalendarPlus, Crown, ExternalLink, Motorbike, Pencil, Plus, Trash2, Users } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -18,7 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { daysFromToday, formatDate, formatDay, formatKm, formatMobile } from "@/lib/format";
 import { useBikeModelList, useDeleteBikeModel, useDeleteVehicle, useVehicles } from "@/lib/queries";
 import type { BikeModel, Vehicle } from "@/lib/types";
-import { AppointmentDialog, BikeModelDialog, CustomerDialog, VehicleDialog } from "@/components/forms/lazy";
+import { AppointmentDialog, BikeModelDialog, VehicleDialog } from "@/components/forms/lazy";
 import { RowAction, RowActions } from "@/components/row-action";
 
 // Charts in their own chunk (recharts), after the numbers.
@@ -176,7 +176,6 @@ export default function BikesPage() {
   const { data: models, isLoading: modelsLoading } = useBikeModelList();
   const removeModel = useDeleteBikeModel();
   const [tab, setTab] = useState<"models" | "bikes">("models");
-  const [selling, setSelling] = useState(false);
   const [adding, setAdding] = useState(false);
   const [renaming, setRenaming] = useState<BikeModel | null>(null);
   const [deleting, setDeleting] = useState<BikeModel | null>(null);
@@ -235,14 +234,9 @@ export default function BikesPage() {
         title="Bikes"
         description={models ? `${list.length} models · ${bikes.length} bikes · ${dueSoon} due within a week` : "Bike models and every bike on record."}
         actions={
-          <>
-            <Button variant="outline" onClick={() => setSelling(true)}>
-              <UserPlus /> Customer & bike
-            </Button>
-            <Button onClick={() => setAdding(true)}>
-              <Plus /> Add bike model
-            </Button>
-          </>
+          <Button onClick={() => setAdding(true)}>
+            <Plus /> Add bike model
+          </Button>
         }
       />
 
@@ -314,7 +308,6 @@ export default function BikesPage() {
         </TabsContent>
       </Tabs>
 
-      {selling && <CustomerDialog open={selling} onOpenChange={setSelling} />}
       {adding && <BikeModelDialog open={adding} onOpenChange={setAdding} />}
       {renaming && <BikeModelDialog open={!!renaming} onOpenChange={(o) => !o && setRenaming(null)} model={renaming} />}
       {viewing && <ModelOwners model={viewing} vehicles={bikes} onClose={() => setViewing(null)} />}
