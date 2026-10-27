@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowUp, CalendarClock, Ellipsis, Info, Pencil, Plus, Trash2, Wrench } from "lucide-react";
+import { ArrowDown, ArrowUp, CalendarClock, Info, Pencil, Plus, Trash2, Wrench } from "lucide-react";
 import { useState } from "react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { PageHeader } from "@/components/page-header";
@@ -8,13 +8,6 @@ import { ToneBadge } from "@/components/status-badges";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
@@ -24,6 +17,7 @@ import { useDeleteServiceType, useMoveServiceType, useServiceTypes, useUpdateSer
 import type { ServiceType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ServiceTypeDialog } from "@/components/forms/lazy";
+import { RowAction, RowActions } from "@/components/row-action";
 
 function dueAfter(t: ServiceType) {
   if (t.interval_days == null) return null;
@@ -148,22 +142,10 @@ export default function ServiceTypesPage() {
                     />
                   </TableCell>
                   <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon-sm" aria-label={`${t.name} actions`}>
-                          <Ellipsis />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setEditing(t)}>
-                          <Pencil /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem variant="destructive" onClick={() => setDeleting(t)}>
-                          <Trash2 /> Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <RowActions>
+                      <RowAction label={`Edit ${t.name}`} icon={Pencil} onClick={() => setEditing(t)} />
+                      <RowAction label={`Delete ${t.name}`} icon={Trash2} destructive onClick={() => setDeleting(t)} />
+                    </RowActions>
                   </TableCell>
                 </TableRow>
               ))}

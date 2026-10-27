@@ -1,7 +1,7 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { CalendarPlus, Crown, Ellipsis, ExternalLink, Motorbike, Pencil, Plus, Trash2, UserPlus, Users } from "lucide-react";
+import { CalendarPlus, Crown, ExternalLink, Motorbike, Pencil, Plus, Trash2, UserPlus, Users } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -15,17 +15,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { daysFromToday, formatDate, formatDay, formatKm, formatMobile } from "@/lib/format";
 import { useBikeModelList, useDeleteBikeModel, useDeleteVehicle, useVehicles } from "@/lib/queries";
 import type { BikeModel, Vehicle } from "@/lib/types";
 import { AppointmentDialog, BikeModelDialog, CustomerDialog, VehicleDialog } from "@/components/forms/lazy";
+import { RowAction, RowActions } from "@/components/row-action";
 
 // Charts in their own chunk (recharts), after the numbers.
 const chartLoading = () => <Skeleton className="h-[240px] w-full" />;
@@ -36,31 +30,11 @@ function BikeActions({ vehicle }: { vehicle: Vehicle }) {
   const [dialog, setDialog] = useState<"edit" | "book" | "delete" | null>(null);
   const remove = useDeleteVehicle();
   return (
-    <div className="flex justify-end">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon-sm" aria-label="Bike actions">
-            <Ellipsis />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuItem onClick={() => setDialog("book")}>
-            <CalendarPlus /> Book service
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setDialog("edit")}>
-            <Pencil /> Edit bike
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href={`/customers/view/?id=${vehicle.customer_id}`}>
-              <ExternalLink /> View owner
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive" onClick={() => setDialog("delete")}>
-            <Trash2 /> Delete bike
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+    <RowActions>
+      <RowAction label="Book service" icon={CalendarPlus} onClick={() => setDialog("book")} />
+      <RowAction label="Edit bike" icon={Pencil} onClick={() => setDialog("edit")} />
+      <RowAction label="View owner" icon={ExternalLink} href={`/customers/view/?id=${vehicle.customer_id}`} />
+      <RowAction label="Delete bike" icon={Trash2} destructive onClick={() => setDialog("delete")} />
       {dialog === "edit" && <VehicleDialog open={dialog === "edit"} onOpenChange={(o) => !o && setDialog(null)} vehicle={vehicle} />}
       {dialog === "book" && <AppointmentDialog open={dialog === "book"} onOpenChange={(o) => !o && setDialog(null)} customerId={vehicle.customer_id} vehicleId={vehicle.id} />}
       {dialog === "delete" && <ConfirmDialog
@@ -72,7 +46,7 @@ function BikeActions({ vehicle }: { vehicle: Vehicle }) {
         destructive
         onConfirm={() => remove.mutate(vehicle.id)}
       />}
-    </div>
+    </RowActions>
   );
 }
 
@@ -148,30 +122,15 @@ const columns: ColumnDef<Vehicle>[] = [
   { id: "actions", header: "", cell: ({ row }) => <BikeActions vehicle={row.original} /> },
 ];
 
-/** One row of the Models table: rename, see owners, delete (when unused). */
+/** A model's actions, side by side: see owners, rename, delete (when unused). */
 function ModelActions({ model, onView, onRename, onDelete }: { model: BikeModel; onView: () => void; onRename: () => void; onDelete: () => void }) {
   return (
-    <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon-sm" aria-label={`Actions for ${model.name}`}>
-            <Ellipsis />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuItem onClick={onView} disabled={!model.bikes}>
-            <Users /> View customers
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={onRename}>
-            <Pencil /> Rename
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive" onClick={onDelete} disabled={model.bikes > 0}>
-            <Trash2 /> {model.bikes > 0 ? "In use: can't delete" : "Delete model"}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+    <RowActions>
+      <RowAction label="View customers" icon={Users} onClick={onView} disabled={!model.bikes} disabledReason="No bikes of this model yet" />
+      <RowAction label="Rename" icon={Pencil} onClick={onRename} />
+      <RowAction label="Delete model" icon={Trash2} destructive onClick={onDelete}
+        disabled={model.bikes > 0} disabledReason="In use: change those bikes' model first" />
+    </RowActions>
   );
 }
 

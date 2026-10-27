@@ -1,7 +1,7 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { CalendarCheck, Ellipsis, ExternalLink, Headset, PhoneMissed, Repeat, Trash2 } from "lucide-react";
+import { CalendarCheck, ExternalLink, Headset, PhoneMissed, Repeat, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useAuth } from "@/components/auth-provider";
@@ -11,45 +11,23 @@ import { DataTable, SortHeader } from "@/components/data-table";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatTimestamp, OUTCOME_LABELS, timeAgo } from "@/lib/format";
 import { CALL_LOG_LIMIT, useCallCount, useCalls, useDeleteCall, useDeleteCalls } from "@/lib/queries";
 import type { CallLog, CallOutcome } from "@/lib/types";
 import { CallArt } from "@/components/art/call";
+import { RowAction, RowActions } from "@/components/row-action";
 
-/** ⋯ on a call (admins only): open the customer, delete the call. */
+/** A call's actions (admins only), side by side: open the customer, delete the call. */
 function CallRowActions({ call }: { call: CallLog }) {
   const { user } = useAuth();
   const remove = useDeleteCall();
   const [confirming, setConfirming] = useState(false);
   if (user?.role !== "admin") return null;
   return (
-    <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon-sm" aria-label="Call actions">
-            <Ellipsis />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem asChild>
-            <Link href={`/customers/view/?id=${call.customer_id}`}>
-              <ExternalLink /> Open customer
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive" onClick={() => setConfirming(true)}>
-            <Trash2 /> Delete call
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+    <RowActions>
+      <RowAction label="Open customer" icon={ExternalLink} href={`/customers/view/?id=${call.customer_id}`} />
+      <RowAction label="Delete call" icon={Trash2} destructive onClick={() => setConfirming(true)} />
       {confirming && (
         <ConfirmDialog
           open={confirming}
@@ -61,7 +39,7 @@ function CallRowActions({ call }: { call: CallLog }) {
           onConfirm={() => remove.mutate(call.id)}
         />
       )}
-    </div>
+    </RowActions>
   );
 }
 

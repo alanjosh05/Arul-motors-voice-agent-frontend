@@ -3,7 +3,6 @@
 import {
   ArrowLeft,
   CalendarPlus,
-  Ellipsis,
   Motorbike,
   NotebookPen,
   Pencil,
@@ -24,13 +23,6 @@ import { AppointmentStateBadge, DueBadge, OilChangeBadge, OutcomeBadge } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -42,6 +34,7 @@ import type { CustomerDetail, Vehicle } from "@/lib/types";
 import { AppointmentDialog, CloseServiceDialog, CustomerDialog, LogCallDialog, VehicleDialog } from "@/components/forms/lazy";
 import { BookingArt } from "@/components/art/booking";
 import { CallArt } from "@/components/art/call";
+import { RowAction, RowActions } from "@/components/row-action";
 
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -75,29 +68,14 @@ function BikeCard({ vehicle, customer }: { vehicle: Vehicle; customer: CustomerD
           </div>
         </div>
         <CardAction>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon-sm" aria-label="Bike actions">
-                <Ellipsis />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setDialog("book")}>
-                <CalendarPlus /> Book service
-              </DropdownMenuItem>
-              {/* A walk-in: the bike came in without a booking. */}
-              <DropdownMenuItem disabled={!!booking} onClick={() => setDialog("service")}>
-                <Wrench /> Record service (walk-in)
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setDialog("edit")}>
-                <Pencil /> Edit bike
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem variant="destructive" onClick={() => setDialog("delete")}>
-                <Trash2 /> Delete bike
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <RowActions>
+            <RowAction label="Book service" icon={CalendarPlus} onClick={() => setDialog("book")} />
+            {/* A walk-in: the bike came in without a booking. */}
+            <RowAction label="Record service (walk-in)" icon={Wrench} onClick={() => setDialog("service")}
+              disabled={!!booking} disabledReason="Booked: close the booking instead" />
+            <RowAction label="Edit bike" icon={Pencil} onClick={() => setDialog("edit")} />
+            <RowAction label="Delete bike" icon={Trash2} destructive onClick={() => setDialog("delete")} />
+          </RowActions>
         </CardAction>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -258,28 +236,16 @@ function CustomerProfile() {
             <Button variant="outline" onClick={() => setDialog("book")}>
               <CalendarPlus /> Book service
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" aria-label="More actions">
-                  <Ellipsis />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => setDialog("log")}>
-                  <NotebookPen /> Log a call
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setDialog("bike")}>
-                  <Plus /> Add bike
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setDialog("edit")}>
-                  <Pencil /> Edit details
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem variant="destructive" onClick={() => setDialog("delete")}>
-                  <Trash2 /> Delete customer
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button variant="outline" onClick={() => setDialog("log")}>
+              <NotebookPen /> Log a call
+            </Button>
+            <Button variant="outline" onClick={() => setDialog("bike")}>
+              <Plus /> Add bike
+            </Button>
+            <RowActions>
+              <RowAction label="Edit details" icon={Pencil} onClick={() => setDialog("edit")} />
+              <RowAction label="Delete customer" icon={Trash2} destructive onClick={() => setDialog("delete")} />
+            </RowActions>
           </div>
         </CardContent>
       </Card>

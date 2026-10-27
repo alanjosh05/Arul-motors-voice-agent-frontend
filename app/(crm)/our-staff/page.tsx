@@ -1,6 +1,6 @@
 "use client";
 
-import { Ellipsis, Pencil, Plus, Tags, Trash2, UserRound } from "lucide-react";
+import { Pencil, Plus, Tags, Trash2, UserRound } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -9,7 +9,6 @@ import { PageHeader } from "@/components/page-header";
 import { ToneBadge } from "@/components/status-badges";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -18,6 +17,7 @@ import { formatMobile } from "@/lib/format";
 import { useDeleteShowroomStaff, useShowroomStaff, useStaffCategories } from "@/lib/queries";
 import type { ShowroomStaff, StaffCategory } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { RowAction, RowActions } from "@/components/row-action";
 
 // A colour per category, in the categories' order.
 const TONES = ["blue", "amber", "violet", "green", "red", "gray"] as const;
@@ -113,22 +113,10 @@ export default function OurStaffPage() {
                   </TableCell>
                   {isAdmin && (
                     <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon-sm" aria-label={`Actions for ${p.name}`}>
-                            <Ellipsis />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setEditing(p)}>
-                            <Pencil /> Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem variant="destructive" onClick={() => setDeleting(p)}>
-                            <Trash2 /> Remove
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <RowActions>
+                        <RowAction label={`Edit ${p.name}`} icon={Pencil} onClick={() => setEditing(p)} />
+                        <RowAction label={`Remove ${p.name}`} icon={Trash2} destructive onClick={() => setDeleting(p)} />
+                      </RowActions>
                     </TableCell>
                   )}
                 </TableRow>

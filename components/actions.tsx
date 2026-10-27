@@ -5,32 +5,21 @@ import {
   CalendarPlus,
   CircleCheck,
   CircleX,
-  Ellipsis,
   ExternalLink,
   NotebookPen,
   Pencil,
   PhoneCall,
   Trash2,
 } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { preloadCallCode, useCall } from "@/components/call/call-provider";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { RowAction, RowActions } from "@/components/row-action";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCancelAppointment, useDeleteCustomer, useVoiceEnabled } from "@/lib/queries";
 import type { Appointment, Customer } from "@/lib/types";
 import { AppointmentDialog, CloseServiceDialog, CustomerDialog, LogCallDialog } from "@/components/forms/lazy";
-
-const stop = (e: React.SyntheticEvent) => e.stopPropagation();
 
 /** Primary "Call with agent" button (hidden while the voice agent is switched off). */
 export function CallButton({
@@ -74,47 +63,18 @@ export function CallButton({
   );
 }
 
-/** ⋯ menu for a service booking: reschedule, close service (record + PDF), cancel, open customer. */
+/** A booking's actions, side by side: close service (record + PDF),
+ * reschedule, open customer, cancel. */
 export function AppointmentActions({ appointment, showCustomerLink = true }: { appointment: Appointment; showCustomerLink?: boolean }) {
   const [dialog, setDialog] = useState<"reschedule" | "complete" | "cancel" | null>(null);
   const cancel = useCancelAppointment();
   const open = appointment.state === "upcoming" || appointment.state === "missed";
   return (
-    <div onClick={stop} className="flex justify-end">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon-sm" aria-label="Booking actions">
-            <Ellipsis />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          {open && (
-            <>
-              <DropdownMenuItem onClick={() => setDialog("complete")}>
-                <CircleCheck /> Close service
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setDialog("reschedule")}>
-                <CalendarClock /> Reschedule
-              </DropdownMenuItem>
-            </>
-          )}
-          {showCustomerLink && (
-            <DropdownMenuItem asChild>
-              <Link href={`/customers/view/?id=${appointment.customer_id}`}>
-                <ExternalLink /> View customer
-              </Link>
-            </DropdownMenuItem>
-          )}
-          {open && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem variant="destructive" onClick={() => setDialog("cancel")}>
-                <CircleX /> Cancel booking
-              </DropdownMenuItem>
-            </>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+    <RowActions>
+      {open && <RowAction label="Close service" icon={CircleCheck} onClick={() => setDialog("complete")} />}
+      {open && <RowAction label="Reschedule" icon={CalendarClock} onClick={() => setDialog("reschedule")} />}
+      {showCustomerLink && <RowAction label="View customer" icon={ExternalLink} href={`/customers/view/?id=${appointment.customer_id}`} />}
+      {open && <RowAction label="Cancel booking" icon={CircleX} destructive onClick={() => setDialog("cancel")} />}
       {dialog === "reschedule" && <AppointmentDialog open={dialog === "reschedule"} onOpenChange={(o) => !o && setDialog(null)} appointment={appointment} />}
       {dialog === "complete" && <CloseServiceDialog open={dialog === "complete"} onOpenChange={(o) => !o && setDialog(null)} appointment={appointment} />}
       {dialog === "cancel" && <ConfirmDialog
@@ -126,53 +86,32 @@ export function AppointmentActions({ appointment, showCustomerLink = true }: { a
         destructive
         onConfirm={() => cancel.mutate(appointment.id)}
       />}
-    </div>
+    </RowActions>
   );
 }
 
-/** ⋯ menu for a customer row. */
+/** A customer row's actions, side by side. */
 export function CustomerActions({ customer }: { customer: Customer }) {
   const [dialog, setDialog] = useState<"edit" | "book" | "log" | "delete" | null>(null);
   const remove = useDeleteCustomer();
-  const router = useRouter();
   const { startCall, target } = useCall();
   const voiceOn = useVoiceEnabled();
   return (
-    <div onClick={stop} className="flex justify-end">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon-sm" aria-label="Customer actions">
-            <Ellipsis />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-52">
-          {voiceOn && (
-            <DropdownMenuItem
-              disabled={!!target}
-              onClick={() => startCall({ id: customer.id, name: customer.name, mobile_number: customer.mobile_number })}
-            >
-              <PhoneCall /> Call with agent
-            </DropdownMenuItem>
-          )}
-          <DropdownMenuItem onClick={() => setDialog("book")}>
-            <CalendarPlus /> Book service
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setDialog("log")}>
-            <NotebookPen /> Log a call
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => router.push(`/customers/view/?id=${customer.id}`)}>
-            <ExternalLink /> Open profile
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setDialog("edit")}>
-            <Pencil /> Edit details
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive" onClick={() => setDialog("delete")}>
-            <Trash2 /> Delete customer
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+    <RowActions>
+      {voiceOn && (
+        <RowAction
+          label="Call with agent"
+          icon={PhoneCall}
+          disabled={!!target}
+          disabledReason="A call is in progress"
+          onClick={() => startCall({ id: customer.id, name: customer.name, mobile_number: customer.mobile_number })}
+        />
+      )}
+      <RowAction label="Book service" icon={CalendarPlus} onClick={() => setDialog("book")} />
+      <RowAction label="Log a call" icon={NotebookPen} onClick={() => setDialog("log")} />
+      <RowAction label="Open profile" icon={ExternalLink} href={`/customers/view/?id=${customer.id}`} />
+      <RowAction label="Edit details" icon={Pencil} onClick={() => setDialog("edit")} />
+      <RowAction label="Delete customer" icon={Trash2} destructive onClick={() => setDialog("delete")} />
       {dialog === "edit" && <CustomerDialog open={dialog === "edit"} onOpenChange={(o) => !o && setDialog(null)} customer={customer} />}
       {dialog === "book" && <AppointmentDialog open={dialog === "book"} onOpenChange={(o) => !o && setDialog(null)} customerId={customer.id} />}
       {dialog === "log" && <LogCallDialog
@@ -189,6 +128,6 @@ export function CustomerActions({ customer }: { customer: Customer }) {
         destructive
         onConfirm={() => remove.mutate(customer.id)}
       />}
-    </div>
+    </RowActions>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { AudioLines, CalendarPlus, Ellipsis, ExternalLink, NotebookPen } from "lucide-react";
+import { AudioLines, CalendarPlus, ExternalLink, NotebookPen } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { CallButton } from "@/components/actions";
@@ -11,12 +11,12 @@ import { PageHeader } from "@/components/page-header";
 import { DueBadge } from "@/components/status-badges";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { formatDay, formatMobile } from "@/lib/format";
 import { useDueServices, useVoiceEnabled } from "@/lib/queries";
 import type { DueService } from "@/lib/types";
 import { AppointmentDialog, LogCallDialog } from "@/components/forms/lazy";
+import { RowAction } from "@/components/row-action";
 
 function RowActions({ row }: { row: DueService }) {
   const [dialog, setDialog] = useState<"book" | "log" | null>(null);
@@ -30,23 +30,8 @@ function RowActions({ row }: { row: DueService }) {
       <Button variant="outline" size="sm" onClick={() => setDialog("book")}>
         <CalendarPlus /> Book
       </Button>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon-sm" aria-label="More">
-            <Ellipsis />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => setDialog("log")}>
-            <NotebookPen /> Log a call
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href={`/customers/view/?id=${row.customer_id}`}>
-              <ExternalLink /> View customer
-            </Link>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <RowAction label="Log a call" icon={NotebookPen} onClick={() => setDialog("log")} />
+      <RowAction label="View customer" icon={ExternalLink} href={`/customers/view/?id=${row.customer_id}`} />
       {dialog === "book" && <AppointmentDialog open={dialog === "book"} onOpenChange={(o) => !o && setDialog(null)} customerId={row.customer_id} vehicleId={row.vehicle_id} />}
       {dialog === "log" && <LogCallDialog open={dialog === "log"} onOpenChange={(o) => !o && setDialog(null)} customer={{ id: row.customer_id, name: row.name, vehicleId: row.vehicle_id }} />}
     </div>
