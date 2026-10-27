@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { LoginArt } from "@/components/art/login";
+import { SidebarPlant } from "@/components/art/sidebar-plant";
 import { AnimateIn } from "@/components/motion/animate-in";
 import { useAuth } from "@/components/auth-provider";
 import { BrandMark } from "@/components/layout/app-sidebar";
@@ -87,6 +88,10 @@ export default function LoginPage() {
       </aside>
 
       <main className="relative flex flex-col items-center justify-center p-6 sm:p-10 lg:overflow-y-auto">
+        {/* Decoration: the same leafy plants in the bottom-right corner (wider screens). */}
+        <div aria-hidden className="pointer-events-none absolute right-4 bottom-2 hidden w-36 -scale-x-100 opacity-90 sm:block">
+          <SidebarPlant className="h-auto w-full" />
+        </div>
         {/* Without the blue panel (phones, tablets): the screen's top-left is here. */}
         <BrandMark full className="mb-6 h-14 w-auto self-start drop-shadow-sm sm:absolute sm:top-6 sm:left-6 sm:mb-0 lg:hidden" />
         <div className="w-full max-w-sm space-y-8">

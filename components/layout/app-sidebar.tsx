@@ -257,10 +257,12 @@ export function AppSidebar() {
           </SidebarGroup>
         ))}
       </SidebarContent>
-      <SidebarFooter>
-        {/* Decoration: the leafy plants (hidden when the sidebar is closed). */}
-        <div aria-hidden className="pointer-events-none px-3 group-data-[collapsible=icon]:hidden">
-          <SidebarPlant className="mx-auto h-16 w-auto opacity-90" />
+      <SidebarFooter className="relative">
+        {/* Decoration: leafy plants peeking in from the bottom-right corner,
+            just above the footer. Takes no space and can't be clicked; hidden
+            when the sidebar is closed. */}
+        <div aria-hidden className="pointer-events-none absolute right-0 bottom-full w-24 -scale-x-100 opacity-85 group-data-[collapsible=icon]:hidden">
+          <SidebarPlant className="h-auto w-full" />
         </div>
         <AgentStatus />
         <SidebarMenu>
