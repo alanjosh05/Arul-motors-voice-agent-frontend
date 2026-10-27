@@ -8,7 +8,7 @@ import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useRef } from "react";
 import { useAuth } from "@/components/auth-provider";
-import { NAV } from "@/components/layout/nav";
+import { visibleNav } from "@/components/layout/nav";
 import { pop, useAnime } from "@/lib/motion";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -201,7 +201,9 @@ export function AppSidebar() {
     due: stats?.totals.due_this_week,
     today: stats?.totals.appointments_today,
   };
-  const groups = [...new Set(NAV.map((item) => item.group))];
+  const { user } = useAuth();
+  const nav = visibleNav(user?.role);
+  const groups = [...new Set(nav.map((item) => item.group))];
 
   return (
     <Sidebar collapsible="icon" variant="inset">
@@ -226,7 +228,7 @@ export function AppSidebar() {
             <SidebarGroupLabel>{group}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {NAV.filter((item) => item.group === group).map((item) => {
+                {nav.filter((item) => item.group === group).map((item) => {
                   const active = pathname.startsWith(item.href.replace(/\/$/, ""));
                   const count = item.badge ? badges[item.badge] : undefined;
                   return (

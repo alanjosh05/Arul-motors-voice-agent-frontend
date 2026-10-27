@@ -32,6 +32,24 @@ export function part(shape: Element, origin = "center"): SVGGElement {
   return g;
 }
 
+/** Several shapes moved as one (e.g. a person: body, arms, head, tools). The
+ * shapes stay in their drawing order; if they aren't side by side in the
+ * drawing, each gets its own wrapper instead (they then move alike). */
+export function group(shapes: Element[]): Element[] {
+  const parent = shapes[0]?.parentElement;
+  const siblings = parent ? [...parent.children] : [];
+  const first = siblings.indexOf(shapes[0]);
+  const together = parent && shapes.every((sh, i) => sh.parentElement === parent && siblings[first + i] === sh);
+  if (!together) return shapes.map((sh) => part(sh));
+  const g = document.createElementNS(SVG_NS, "g");
+  g.setAttribute("data-w", "");
+  g.style.transformBox = "fill-box";
+  g.style.transformOrigin = "center";
+  shapes[0].before(g);
+  g.append(...shapes);
+  return [g];
+}
+
 /** A decorative illustration (an SVG string from this repo, never user data).
  *  It pops in, floats gently, and its `motion` brings it to life. */
 export function Art({ svg, motion, className }: { svg: string; motion?: ArtMotion; className?: string }) {

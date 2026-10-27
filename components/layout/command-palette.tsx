@@ -5,7 +5,8 @@
 import { CalendarPlus, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { CustomerAvatar } from "@/components/customer-avatar";
-import { NAV } from "@/components/layout/nav";
+import { useAuth } from "@/components/auth-provider";
+import { visibleNav } from "@/components/layout/nav";
 import {
   Command,
   CommandDialog,
@@ -31,6 +32,7 @@ export default function CommandPalette({
   onNewBooking: () => void;
 }) {
   const router = useRouter();
+  const { user } = useAuth();
   const { data: customers = [] } = useCustomers();
   const run = (fn: () => void) => {
     setOpen(false);
@@ -69,7 +71,7 @@ export default function CommandPalette({
           </CommandGroup>
           <CommandSeparator />
           <CommandGroup heading="Pages">
-            {NAV.map((item) => (
+            {visibleNav(user?.role).map((item) => (
               <CommandItem key={item.href} onSelect={() => run(() => router.push(item.href))}>
                 <item.icon /> {item.title}
               </CommandItem>
