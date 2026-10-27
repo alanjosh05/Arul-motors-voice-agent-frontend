@@ -349,8 +349,9 @@ export interface VehicleSaleInput {
   mobile_number: string;
   registration_number: string;
   model: string;
-  next_service_date: string;
-  next_service_type: string;
+  /** Optional for a bike bought elsewhere (set at its first visit). */
+  next_service_date?: string;
+  next_service_type?: string;
   purchase_date?: string | null;
   odometer_km?: number | null;
   last_service_date?: string | null;

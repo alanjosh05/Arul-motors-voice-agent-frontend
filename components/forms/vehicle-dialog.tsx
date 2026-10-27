@@ -6,7 +6,7 @@ import { BoughtFromField } from "@/components/forms/bought-from-field";
 import { FormDialog } from "@/components/forms/form-dialog";
 import { ModelPicker } from "@/components/model-picker";
 import { useAutosaveDraft, useFormDraft } from "@/lib/drafts";
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { todayISO } from "@/lib/format";
@@ -56,7 +56,9 @@ export function VehicleDialog({
     const next: Record<string, string> = {};
     if (!model.trim()) next.model = "Enter the bike model.";
     if (!registration.trim()) next.registration = "Enter the registration number.";
-    if (!nextDate) next.nextDate = "Pick when the next service is due.";
+    // A new bike from another dealer: its next service is set at its first visit.
+    const askNext = editing || !elsewhere;
+    if (!nextDate && askNext) next.nextDate = "Pick when the next service is due.";
     if (odometer && !/^\d+$/.test(odometer)) next.odometer = "Kilometres as a whole number.";
     setErrors(next);
     if (Object.keys(next).length) return;
@@ -69,8 +71,7 @@ export function VehicleDialog({
       dealer_name: elsewhere ? dealer.trim() : "",
       last_service_date: lastService,
       odometer_km: odometer ? Number(odometer) : null,
-      next_service_date: nextDate!,
-      next_service_type: nextType,
+      ...(askNext && { next_service_date: nextDate!, next_service_type: nextType }),
     };
     if (editing)
       await update.mutateAsync({
@@ -135,12 +136,16 @@ export function VehicleDialog({
               </Field>
             </>
           )}
+          {!editing && elsewhere ? (
+            <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground sm:col-span-2">
+              Bought from another dealer: its next service is set when it first comes in here (a booking or a walk-in), so the
+              agent won&rsquo;t call about it until then.
+            </p>
+          ) : (
+            <>
           <Field data-invalid={!!errors.nextDate}>
             <FieldLabel>Next service due</FieldLabel>
             <DatePicker value={nextDate} onChange={setNextDate} invalid={!!errors.nextDate} />
-            {elsewhere && !editing && (
-              <FieldDescription>In the workshop now? Pick today and the service it came for, then use “Record service” on the bike.</FieldDescription>
-            )}
             <FieldError>{errors.nextDate}</FieldError>
           </Field>
           <Field className="sm:col-span-2">
@@ -158,6 +163,8 @@ export function VehicleDialog({
               </SelectContent>
             </Select>
           </Field>
+            </>
+          )}
         </div>
       </FieldGroup>
     </FormDialog>

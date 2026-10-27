@@ -112,7 +112,7 @@ const columns: ColumnDef<Vehicle>[] = [
           {!row.original.next_due_pending && <> · <span className="tabular">{formatDay(row.original.next_service_date)}</span></>}
         </span>
         {row.original.next_due_pending ? (
-          <OilChangeBadge />
+          <OilChangeBadge vehicle={row.original} />
         ) : (
           <DueBadge date={row.original.next_service_date} serviceType={row.original.next_service_type} />
         )}

@@ -32,6 +32,7 @@ import {
 } from "@/lib/queries";
 import type { Appointment, JobCardFeedback, ServiceHistoryItem, Vehicle } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { pendingLabel } from "@/components/status-badges";
 
 const DEFAULT_INTERVAL_DAYS = 90;
 // Repairs don't move the service schedule (e.g. an accident a few days after
@@ -644,7 +645,7 @@ export function CloseServiceDialog({
             <FieldDescription>
               {repairVisit && <strong className="font-medium text-foreground">{serviceType}: no follow-up. </strong>}
               A repair visit (e.g. after an accident): the bike&rsquo;s service schedule doesn&rsquo;t change
-              {bike ? ` (${bike.next_service_type}${bike.next_due_pending ? ", after the oil change" : `, due ${formatDay(bike.next_service_date)}`})` : ""}.
+              {bike ? ` (${bike.next_service_type}${bike.next_due_pending ? `, ${pendingLabel(bike).toLowerCase()}` : `, due ${formatDay(bike.next_service_date)}`})` : ""}.
               Only the odometer and frame/engine numbers are updated.
             </FieldDescription>
           ) : (

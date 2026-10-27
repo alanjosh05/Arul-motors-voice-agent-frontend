@@ -66,7 +66,7 @@ export function CustomerDialog({
     if (withBike) {
       if (!model.trim()) next.model = "Enter the bike model.";
       if (!registration.trim()) next.registration = "Enter the registration number.";
-      if (!nextDate) next.nextDate = "Pick when its next service is due.";
+      if (!nextDate && !elsewhere) next.nextDate = "Pick when its next service is due.";
     }
     setErrors(next);
     if (Object.keys(next).length) return;
@@ -87,8 +87,8 @@ export function CustomerDialog({
         purchase_date: purchase,
         bought_elsewhere: elsewhere,
         dealer_name: elsewhere ? dealer.trim() || null : null,
-        next_service_date: nextDate!,
-        next_service_type: nextType,
+        // Another dealer: the next service is set at its first visit here.
+        ...(!elsewhere && { next_service_date: nextDate!, next_service_type: nextType }),
       });
       draft.clear();
       onOpenChange(false);
@@ -151,6 +151,13 @@ export function CustomerDialog({
                 <FieldLabel>Purchase date</FieldLabel>
                 <DatePicker value={purchase} onChange={setPurchase} max={todayISO()} placeholder="Not known" clearLabel="Not known" />
               </Field>
+              {elsewhere ? (
+                <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground sm:col-span-2">
+                  Bought from another dealer: its next service is set when it first comes in here (a booking or a walk-in), so
+                  the agent won&rsquo;t call about it until then.
+                </p>
+              ) : (
+                <>
               <Field data-invalid={!!errors.nextDate}>
                 <FieldLabel>{elsewhere ? "Next service due" : "First service due"}</FieldLabel>
                 <DatePicker value={nextDate} onChange={setNextDate} invalid={!!errors.nextDate} />
@@ -172,6 +179,8 @@ export function CustomerDialog({
                 </Select>
                 <FieldDescription>The agent will call about this service when it’s due.</FieldDescription>
               </Field>
+                </>
+              )}
             </div>
           </>
         )}

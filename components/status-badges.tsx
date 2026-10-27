@@ -54,9 +54,15 @@ export function OutcomeBadge({ outcome }: { outcome: CallOutcome }) {
 /** Next service status. Before the due date: "In N days". After it, the
  * service type's overdue days are a grace period ("Due · N days left"); past
  * them it's "Overdue N days", counted from when it became overdue. */
-/** The next service's date is set at the oil change (not called until then). */
-export function OilChangeBadge() {
-  return <ToneBadge tone="violet">After oil change</ToneBadge>;
+/** Why a bike's next service has no date yet (it isn't called until then):
+ * bought elsewhere and not serviced here yet, or waiting for the oil change. */
+export function pendingLabel(v: { bought_elsewhere?: number | boolean; last_service_date?: string | null }): string {
+  return v.bought_elsewhere && !v.last_service_date ? "Set at first visit" : "After oil change";
+}
+
+/** The next service's date isn't set yet (see pendingLabel). */
+export function OilChangeBadge({ vehicle }: { vehicle: { bought_elsewhere?: number | boolean; last_service_date?: string | null } }) {
+  return <ToneBadge tone="violet">{pendingLabel(vehicle)}</ToneBadge>;
 }
 
 export function DueBadge({ date, serviceType }: { date: string; serviceType?: string }) {
