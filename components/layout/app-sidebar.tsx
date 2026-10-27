@@ -43,6 +43,7 @@ import {
 import { initials } from "@/lib/format";
 import { prefetchPage, useStats, useVoiceEnabled, useVoiceStatus } from "@/lib/queries";
 import { cn } from "@/lib/utils";
+import { SidebarPlant } from "@/components/art/sidebar-plant";
 
 /** The Arul Motors logo: the red AM monogram, no background (vector, after
  * the client's badge). `full` adds ARUL MOTORS / NAZARETH / YAMAHA in white,
@@ -257,6 +258,10 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
       <SidebarFooter>
+        {/* Decoration: the leafy plants (hidden when the sidebar is closed). */}
+        <div aria-hidden className="pointer-events-none px-3 group-data-[collapsible=icon]:hidden">
+          <SidebarPlant className="mx-auto h-16 w-auto opacity-90" />
+        </div>
         <AgentStatus />
         <SidebarMenu>
           <SidebarMenuItem>
