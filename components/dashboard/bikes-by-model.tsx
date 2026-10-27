@@ -8,17 +8,15 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { type ChartRange, RangeFilter, rangeDates, rangeLabel } from "@/components/range-filter";
-import { useChartBikeModels } from "@/lib/queries";
+import { useBikeModelList, useBikeModels } from "@/lib/queries";
 
 const SHOWN = 8; // models listed before "Show all"
 
 /** Dashboard: how many bikes are on record, and how many of each model. */
 export function BikesByModel() {
-  // Bikes added to the CRM in the period (all time by default).
-  const [range, setRange] = useState<ChartRange>({ preset: "all" });
-  const { data, isLoading } = useChartBikeModels(rangeDates(range, "past"));
-  const models = (data ?? []).map((m) => ({ model: m.name, count: m.bikes })).sort((a, b) => b.count - a.count || a.model.localeCompare(b.model));
+  // Every bike on record by model (not about a period, so no date filter).
+  const { isLoading } = useBikeModelList();
+  const models = useBikeModels().filter((m) => m.count > 0); // most bikes first
   const [all, setAll] = useState(false);
   const total = models.reduce((sum, m) => sum + m.count, 0);
   const top = models[0]?.count ?? 1;
@@ -27,11 +25,8 @@ export function BikesByModel() {
       <CardHeader>
         <CardTitle>Bikes by model</CardTitle>
         <CardDescription>
-          {isLoading
-            ? "Loading…"
-            : `${total} bike${total === 1 ? "" : "s"} · ${models.length} model${models.length === 1 ? "" : "s"}${range.preset === "all" ? " on record" : ` added ${rangeLabel(range, "past")}`}`}
+          {isLoading ? "Loading…" : `${total} bike${total === 1 ? "" : "s"} on record · ${models.length} model${models.length === 1 ? "" : "s"}`}
         </CardDescription>
-        <RangeFilter value={range} onChange={setRange} allowAll className="pt-2" />
         <CardAction>
           <Button variant="ghost" size="sm" asChild>
             <Link href="/bikes/">
@@ -46,7 +41,7 @@ export function BikesByModel() {
         ) : models.length === 0 ? (
           <Empty className="h-[160px] border-0">
             <EmptyHeader>
-              <EmptyTitle>{range.preset === "all" ? "No bikes yet" : "No bikes added in this period"}</EmptyTitle>
+              <EmptyTitle>No bikes yet</EmptyTitle>
             </EmptyHeader>
           </Empty>
         ) : (

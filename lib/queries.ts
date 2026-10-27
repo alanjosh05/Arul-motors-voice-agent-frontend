@@ -107,7 +107,7 @@ export const useVehicles = () => useQuery(queries.vehicles());
 
 /** Bike models already saved for customers, most sold first, with how many
  * bikes of each (for the model picker). */
-// ---- Charts with a date range (null range = all time; bike models only)
+// ---- Charts with a date range
 type Span = { start: string; end: string } | null;
 const spanQuery = (span: Span) => (span ? { start: span.start, end: span.end } : {});
 
@@ -130,15 +130,6 @@ export const useChartCalls = (span: Span) =>
         { query: spanQuery(span) },
       ),
     enabled: !!span,
-    placeholderData: keepPreviousData,
-  });
-
-/** Per model among bikes added in the range (null: every bike). */
-export const useChartBikeModels = (span: Span) =>
-  useQuery({
-    queryKey: ["charts", "bike-models", span?.start ?? "all", span?.end ?? "all"],
-    queryFn: () =>
-      api<{ name: string; bikes: number; customers: number; bought_elsewhere: number }[]>("/api/charts/bike-models", { query: spanQuery(span) }),
     placeholderData: keepPreviousData,
   });
 
