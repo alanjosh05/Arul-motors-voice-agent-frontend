@@ -19,7 +19,7 @@ import type {
   ServiceType,
   StaffUser,
   Vehicle,
-  VoiceConfig, ShowroomStaff, StaffCategory, StaffCategoryRow, BikeModel } from "./types";
+  VoiceConfig, ShowroomStaff, StaffCategory, StaffCategoryRow, BikeModel, CallOutcome } from "./types";
 
 export const keys = {
   stats: ["stats"] as const,
@@ -107,6 +107,41 @@ export const useVehicles = () => useQuery(queries.vehicles());
 
 /** Bike models already saved for customers, most sold first, with how many
  * bikes of each (for the model picker). */
+// ---- Charts with a date range (null range = all time; bike models only)
+type Span = { start: string; end: string } | null;
+const spanQuery = (span: Span) => (span ? { start: span.start, end: span.end } : {});
+
+/** Bookings per day in the range. */
+export const useChartBookings = (span: Span) =>
+  useQuery({
+    queryKey: ["charts", "bookings", span?.start, span?.end],
+    queryFn: () => api<{ date: string; count: number }[]>("/api/charts/bookings", { query: spanQuery(span) }),
+    enabled: !!span,
+    placeholderData: keepPreviousData,
+  });
+
+/** Calls in the range: per day, by outcome, total. */
+export const useChartCalls = (span: Span) =>
+  useQuery({
+    queryKey: ["charts", "calls", span?.start, span?.end],
+    queryFn: () =>
+      api<{ per_day: { date: string; total: number; confirmed: number }[]; outcomes: { outcome: CallOutcome; count: number }[]; total: number }>(
+        "/api/charts/calls",
+        { query: spanQuery(span) },
+      ),
+    enabled: !!span,
+    placeholderData: keepPreviousData,
+  });
+
+/** Per model among bikes added in the range (null: every bike). */
+export const useChartBikeModels = (span: Span) =>
+  useQuery({
+    queryKey: ["charts", "bike-models", span?.start ?? "all", span?.end ?? "all"],
+    queryFn: () =>
+      api<{ name: string; bikes: number; customers: number; bought_elsewhere: number }[]>("/api/charts/bike-models", { query: spanQuery(span) }),
+    placeholderData: keepPreviousData,
+  });
+
 /** The bike models list (Bikes page), with usage counts. */
 export const useBikeModelList = () => useQuery(queries.bikeModels());
 

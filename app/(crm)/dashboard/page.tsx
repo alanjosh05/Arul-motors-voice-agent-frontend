@@ -1,8 +1,6 @@
 "use client";
 
 import { ArrowRight, CalendarCheck, CircleGauge, PhoneOutgoing, Users } from "lucide-react";
-import { useMemo } from "react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { CallButton } from "@/components/actions";
 import { useAuth } from "@/components/auth-provider";
@@ -21,22 +19,11 @@ import { formatDay, timeAgo } from "@/lib/format";
 import { useStats } from "@/lib/queries";
 import { BookingArt } from "@/components/art/booking";
 import { CallArt } from "@/components/art/call";
-
-// Charts load in their own chunk after the KPIs render.
-const chartLoading = () => <Skeleton className="h-[240px] w-full rounded-lg" />;
-const BookingsChart = dynamic(() => import("@/components/dashboard/charts").then((m) => m.BookingsChart), { ssr: false, loading: chartLoading });
-const OutcomesChart = dynamic(() => import("@/components/dashboard/charts").then((m) => m.OutcomesChart), { ssr: false, loading: chartLoading });
-const CallsChart = dynamic(() => import("@/components/dashboard/charts").then((m) => m.CallsChart), { ssr: false, loading: chartLoading });
+import { BookingsCard, CallsCard, OutcomesCard } from "@/components/dashboard/range-cards";
 
 function greeting() {
   const hour = Number(new Intl.DateTimeFormat("en-IN", { hour: "numeric", hour12: false, timeZone: "Asia/Kolkata" }).format(new Date()));
   return hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-}
-
-const NO_POINTS: never[] = []; // stable empty chart data while loading
-
-function ChartSkeleton() {
-  return <Skeleton className="h-[240px] w-full rounded-lg" />;
 }
 
 export default function DashboardPage() {
@@ -44,8 +31,6 @@ export default function DashboardPage() {
   const { data, isLoading } = useStats();
   const { activeCalls } = useLive();
   const t = data?.totals;
-  const outcomes = useMemo(() => (data?.call_outcomes_30d ?? []).filter((o) => o.count > 0), [data]);
-  const totalCalls30 = outcomes.reduce((sum, o) => sum + o.count, 0);
 
   return (
     <>
@@ -106,57 +91,12 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-7">
-        <Card className="lg:col-span-4">
-          <CardHeader>
-            <CardTitle>Bookings ahead</CardTitle>
-            <CardDescription>Bikes coming in over the next 14 days</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <ChartSkeleton />
-            ) : (
-              <BookingsChart data={data?.appointments_next_14_days ?? NO_POINTS} />
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle>Call outcomes</CardTitle>
-            <CardDescription>Agent and staff calls, last 30 days</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <ChartSkeleton />
-            ) : totalCalls30 === 0 ? (
-              <Empty className="h-[240px] border-0">
-                <EmptyHeader>
-                  <EmptyMedia><CallArt className="h-24" /></EmptyMedia>
-                  <EmptyTitle>No calls yet</EmptyTitle>
-                  <EmptyDescription>Outcomes appear here once the agent starts calling.</EmptyDescription>
-                </EmptyHeader>
-              </Empty>
-            ) : (
-              <OutcomesChart outcomes={outcomes} total={totalCalls30} />
-            )}
-          </CardContent>
-        </Card>
+        <BookingsCard className="lg:col-span-4" />
+        <OutcomesCard className="lg:col-span-3" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-7">
-        <Card className="lg:col-span-4">
-          <CardHeader>
-            <CardTitle>Follow-up calls</CardTitle>
-            <CardDescription>Calls per day, last 14 days</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <ChartSkeleton />
-            ) : (
-              <CallsChart data={data?.calls_last_14_days ?? NO_POINTS} />
-            )}
-          </CardContent>
-        </Card>
+        <CallsCard className="lg:col-span-4" />
 
         <Card className="lg:col-span-3">
           <CardHeader>

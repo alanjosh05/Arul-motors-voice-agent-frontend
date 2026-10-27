@@ -16,10 +16,11 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { daysFromToday, formatDate, formatDay, formatKm, formatMobile } from "@/lib/format";
-import { useBikeModelList, useDeleteBikeModel, useDeleteVehicle, useVehicles } from "@/lib/queries";
+import { useBikeModelList, useChartBikeModels, useDeleteBikeModel, useDeleteVehicle, useVehicles } from "@/lib/queries";
 import type { BikeModel, Vehicle } from "@/lib/types";
 import { AppointmentDialog, BikeModelDialog, VehicleDialog } from "@/components/forms/lazy";
 import { RowAction, RowActions } from "@/components/row-action";
+import { type ChartRange, RangeFilter, rangeDates, rangeLabel } from "@/components/range-filter";
 
 // Charts in their own chunk (recharts), after the numbers.
 const chartLoading = () => <Skeleton className="h-[240px] w-full" />;
@@ -122,6 +123,30 @@ const columns: ColumnDef<Vehicle>[] = [
   { id: "actions", header: "", cell: ({ row }) => <BikeActions vehicle={row.original} /> },
 ];
 
+/** A Bikes page chart with its own period: bikes added to the CRM in it
+ * (all time by default; bikes added before dates were kept: all time only). */
+function ModelChartCard({ kind }: { kind: "customers" | "source" }) {
+  const [range, setRange] = useState<ChartRange>({ preset: "all" });
+  const { data, isLoading } = useChartBikeModels(rangeDates(range, "past"));
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-xs text-muted-foreground">{range.preset === "all" ? "All bikes on record" : `Bikes added ${rangeLabel(range, "past")}`}</span>
+        <RangeFilter value={range} onChange={setRange} allowAll />
+      </div>
+      {isLoading || !data ? (
+        chartLoading()
+      ) : data.length === 0 ? (
+        <p className="grid h-[200px] place-items-center text-sm text-muted-foreground">No bikes added in this period.</p>
+      ) : kind === "customers" ? (
+        <CustomersByModelChart models={data} />
+      ) : (
+        <SourceChart models={data} />
+      )}
+    </div>
+  );
+}
+
 /** A model's actions, side by side: see owners, rename, delete (when unused). */
 function ModelActions({ model, onView, onRename, onDelete }: { model: BikeModel; onView: () => void; onRename: () => void; onDelete: () => void }) {
   return (
@@ -187,7 +212,6 @@ export default function BikesPage() {
   const dueSoon = bikes.filter((v) => !v.next_due_pending && daysFromToday(v.next_service_date) <= 7).length;
   const top = list.find((m) => m.bikes > 0);
   const maxCustomers = Math.max(1, ...list.map((m) => m.customers));
-  const loading = isLoading || modelsLoading;
 
   const modelColumns: ColumnDef<BikeModel>[] = [
     {
@@ -259,14 +283,18 @@ export default function BikesPage() {
             <CardTitle>Customers by model</CardTitle>
             <CardDescription>Which models most of our customers ride (top 10)</CardDescription>
           </CardHeader>
-          <CardContent>{loading ? chartLoading() : <CustomersByModelChart models={list} />}</CardContent>
+          <CardContent>
+            <ModelChartCard kind="customers" />
+          </CardContent>
         </Card>
         <Card className="lg:col-span-3">
           <CardHeader>
             <CardTitle>Where they were bought</CardTitle>
             <CardDescription>Sold here, or bought from another dealer and serviced here</CardDescription>
           </CardHeader>
-          <CardContent>{loading ? chartLoading() : <SourceChart models={list} />}</CardContent>
+          <CardContent>
+            <ModelChartCard kind="source" />
+          </CardContent>
         </Card>
       </div>
 

@@ -3,7 +3,8 @@
 // The Bikes page's charts, in their own chunk (recharts loads after the numbers).
 import { Bar, BarChart, CartesianGrid, Cell, Label, LabelList, Pie, PieChart, XAxis, YAxis } from "recharts";
 import { type ChartConfig, ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import type { BikeModel } from "@/lib/types";
+/** Per-model numbers a chart needs (the model list's rows, or a period's). */
+export type ModelRow = { name: string; bikes: number; customers: number; bought_elsewhere: number };
 
 const customersConfig = {
   customers: { label: "Customers", color: "var(--chart-1)" },
@@ -16,7 +17,7 @@ const sourceConfig = {
 } satisfies ChartConfig;
 
 /** Customers per model, most first (top `limit`). */
-export function CustomersByModelChart({ models, limit = 10 }: { models: BikeModel[]; limit?: number }) {
+export function CustomersByModelChart({ models, limit = 10 }: { models: ModelRow[]; limit?: number }) {
   const data = models.filter((m) => m.bikes > 0).slice(0, limit).map((m) => ({ name: m.name, customers: m.customers, bikes: m.bikes }));
   return (
     <ChartContainer config={customersConfig} className="aspect-auto w-full" style={{ height: Math.max(180, data.length * 38 + 30) }}>
@@ -34,7 +35,7 @@ export function CustomersByModelChart({ models, limit = 10 }: { models: BikeMode
 }
 
 /** Bikes sold here vs bought from another dealer. */
-export function SourceChart({ models }: { models: BikeModel[] }) {
+export function SourceChart({ models }: { models: ModelRow[] }) {
   const elsewhere = models.reduce((sum, m) => sum + m.bought_elsewhere, 0);
   const total = models.reduce((sum, m) => sum + m.bikes, 0);
   const data = [
