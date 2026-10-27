@@ -10,6 +10,7 @@ export const VehicleDialog = dynamic(() => import("./vehicle-dialog").then((m) =
 export const AppointmentDialog = dynamic(() => import("./appointment-dialog").then((m) => m.AppointmentDialog), { ssr: false });
 export const CloseServiceDialog = dynamic(() => import("./close-service-dialog").then((m) => m.CloseServiceDialog), { ssr: false });
 export const LogCallDialog = dynamic(() => import("./log-call-dialog").then((m) => m.LogCallDialog), { ssr: false });
+export const BikeModelDialog = dynamic(() => import("./bike-model-dialog").then((m) => m.BikeModelDialog), { ssr: false });
 export const StaffCategoriesDialog = dynamic(() => import("./staff-categories-dialog").then((m) => m.StaffCategoriesDialog), { ssr: false });
 export const ShowroomStaffDialog = dynamic(() => import("./showroom-staff-dialog").then((m) => m.ShowroomStaffDialog), { ssr: false });
 export const ServiceTypeDialog = dynamic(() => import("./service-type-dialog").then((m) => m.ServiceTypeDialog), { ssr: false });

@@ -19,7 +19,7 @@ import type {
   ServiceType,
   StaffUser,
   Vehicle,
-  VoiceConfig, ShowroomStaff, StaffCategory, StaffCategoryRow } from "./types";
+  VoiceConfig, ShowroomStaff, StaffCategory, StaffCategoryRow, BikeModel } from "./types";
 
 export const keys = {
   stats: ["stats"] as const,
@@ -33,6 +33,7 @@ export const keys = {
   serviceTypes: ["service-types"] as const,
   showroomStaff: ["showroom-staff"] as const,
   staffCategories: ["staff-categories"] as const,
+  bikeModels: ["bike-models"] as const,
   voiceStatus: ["voice-status"] as const,
   settings: ["settings"] as const,
   serviceHistory: (vehicleId: number) => ["service-history", vehicleId] as const,
@@ -53,6 +54,7 @@ export const queries = {
   appointments: () => ({ queryKey: keys.appointments, queryFn: () => api<Appointment[]>("/api/appointments") }),
   calls: () => ({ queryKey: keys.calls, queryFn: () => api<CallLog[]>("/api/calls", { query: { limit: CALL_LOG_LIMIT } }) }),
   callCount: () => ({ queryKey: [...keys.calls, "count"], queryFn: () => api<{ total: number }>("/api/calls/count") }),
+  bikeModels: () => ({ queryKey: keys.bikeModels, queryFn: () => api<BikeModel[]>("/api/bike-models") }),
   staffCategories: () => ({ queryKey: keys.staffCategories, queryFn: () => api<StaffCategoryRow[]>("/api/staff-categories"), staleTime: 300_000 }),
   showroomStaff: () => ({ queryKey: keys.showroomStaff, queryFn: () => api<ShowroomStaff[]>("/api/showroom-staff"), staleTime: 300_000 }),
   serviceTypes: () => ({ queryKey: keys.serviceTypes, queryFn: () => api<ServiceType[]>("/api/service-types"), staleTime: 300_000 }),
@@ -64,7 +66,7 @@ const PAGE_QUERIES: Record<string, (() => { queryKey: readonly unknown[]; queryF
   "/dashboard/": [queries.stats, queries.vehicles],
   "/follow-ups/": [() => queries.due(7)],
   "/customers/": [queries.customers],
-  "/bikes/": [queries.vehicles],
+  "/bikes/": [queries.vehicles, queries.bikeModels],
   "/appointments/": [queries.appointments],
   "/calls/": [queries.calls, queries.callCount],
   "/service-types/": [queries.serviceTypes],
@@ -105,20 +107,33 @@ export const useVehicles = () => useQuery(queries.vehicles());
 
 /** Bike models already saved for customers, most sold first, with how many
  * bikes of each (for the model picker). */
+/** The bike models list (Bikes page), with usage counts. */
+export const useBikeModelList = () => useQuery(queries.bikeModels());
+
+/** Model names with their bike counts, most bikes first (the bike form's list). */
 export function useBikeModels(): { model: string; count: number }[] {
-  const { data } = useVehicles();
-  return useMemo(() => {
-    const counts = new Map<string, { model: string; count: number }>();
-    for (const v of data ?? []) {
-      const model = v.model.replace(/\s+/g, " ").trim();
-      const key = model.toLowerCase();
-      const entry = counts.get(key) ?? { model, count: 0 };
-      entry.count += 1;
-      counts.set(key, entry);
-    }
-    return [...counts.values()].sort((a, b) => b.count - a.count || a.model.localeCompare(b.model));
-  }, [data]);
+  const { data } = useBikeModelList();
+  return useMemo(
+    () => (data ?? []).map((m) => ({ model: m.name, count: m.bikes })).sort((a, b) => b.count - a.count || a.model.localeCompare(b.model)),
+    [data],
+  );
 }
+
+export const useCreateBikeModel = () =>
+  useCrmMutation((name: string) => api<{ message: string; id: number }>("/api/bike-models", { method: "POST", body: { name } }), {
+    success: "Bike model added",
+  });
+
+export const useRenameBikeModel = () =>
+  useCrmMutation(({ id, name }: { id: number; name: string }) => api(`/api/bike-models/${id}`, { method: "PATCH", body: { name } }), {
+    success: "Bike model renamed",
+  });
+
+export const useDeleteBikeModel = () =>
+  useCrmMutation((id: number) => api(`/api/bike-models/${id}`, { method: "DELETE" }), {
+    success: "Bike model deleted",
+    optimistic: (qc, id) => patchLists<BikeModel>(qc, keys.bikeModels, (rows) => rows.filter((m) => m.id !== id)),
+  });
 
 // Keeps the current list on screen while another period (7/14/30 days) loads.
 export const useDueServices = (days: number) =>

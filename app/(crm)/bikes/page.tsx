@@ -1,14 +1,20 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { CalendarPlus, Ellipsis, ExternalLink, Pencil, Plus, Trash2 } from "lucide-react";
+import { CalendarPlus, Crown, Ellipsis, ExternalLink, Motorbike, Pencil, Plus, Trash2, UserPlus, Users } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { DataTable, SortHeader } from "@/components/data-table";
 import { PageHeader } from "@/components/page-header";
+import { StatCard } from "@/components/stat-card";
 import { DueBadge, OilChangeBadge } from "@/components/status-badges";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,9 +23,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { daysFromToday, formatDate, formatDay, formatKm, formatMobile } from "@/lib/format";
-import { useDeleteVehicle, useVehicles } from "@/lib/queries";
-import type { Vehicle } from "@/lib/types";
-import { AppointmentDialog, CustomerDialog, VehicleDialog } from "@/components/forms/lazy";
+import { useBikeModelList, useDeleteBikeModel, useDeleteVehicle, useVehicles } from "@/lib/queries";
+import type { BikeModel, Vehicle } from "@/lib/types";
+import { AppointmentDialog, BikeModelDialog, CustomerDialog, VehicleDialog } from "@/components/forms/lazy";
+
+// Charts in their own chunk (recharts), after the numbers.
+const chartLoading = () => <Skeleton className="h-[240px] w-full" />;
+const CustomersByModelChart = dynamic(() => import("@/components/bikes/model-charts").then((m) => m.CustomersByModelChart), { ssr: false, loading: chartLoading });
+const SourceChart = dynamic(() => import("@/components/bikes/model-charts").then((m) => m.SourceChart), { ssr: false, loading: chartLoading });
 
 function BikeActions({ vehicle }: { vehicle: Vehicle }) {
   const [dialog, setDialog] = useState<"edit" | "book" | "delete" | null>(null);
@@ -137,34 +148,228 @@ const columns: ColumnDef<Vehicle>[] = [
   { id: "actions", header: "", cell: ({ row }) => <BikeActions vehicle={row.original} /> },
 ];
 
+/** One row of the Models table: rename, see owners, delete (when unused). */
+function ModelActions({ model, onView, onRename, onDelete }: { model: BikeModel; onView: () => void; onRename: () => void; onDelete: () => void }) {
+  return (
+    <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon-sm" aria-label={`Actions for ${model.name}`}>
+            <Ellipsis />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuItem onClick={onView} disabled={!model.bikes}>
+            <Users /> View customers
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={onRename}>
+            <Pencil /> Rename
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem variant="destructive" onClick={onDelete} disabled={model.bikes > 0}>
+            <Trash2 /> {model.bikes > 0 ? "In use: can't delete" : "Delete model"}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+
+/** Customers who own a model (from the Models table). */
+function ModelOwners({ model, vehicles, onClose }: { model: BikeModel; vehicles: Vehicle[]; onClose: () => void }) {
+  const owners = vehicles.filter((v) => v.model.toLowerCase() === model.name.toLowerCase());
+  return (
+    <Sheet open onOpenChange={(o) => !o && onClose()}>
+      <SheetContent className="w-full sm:max-w-md">
+        <SheetHeader>
+          <SheetTitle>{model.name}</SheetTitle>
+          <SheetDescription>
+            {model.customers} customer{model.customers === 1 ? "" : "s"} · {model.bikes} bike{model.bikes === 1 ? "" : "s"} · {model.due_soon} due this week
+          </SheetDescription>
+        </SheetHeader>
+        <ul className="scroll-y flex-1 space-y-2 px-4 pb-4">
+          {owners.map((v) => (
+            <li key={v.id}>
+              <Link href={`/customers/view/?id=${v.customer_id}`} className="block rounded-lg border p-3 transition-colors hover:bg-muted/50">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-medium">{v.customer_name}</span>
+                  <span className="plate">{v.registration_number}</span>
+                </div>
+                <div className="mt-1 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <span className="tabular">{formatMobile(v.mobile_number)}</span>
+                  <span>
+                    {v.next_service_type}
+                    {!v.next_due_pending && ` · ${formatDay(v.next_service_date)}`}
+                  </span>
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+/** Bikes: the model list (add, rename, delete) with who owns what, plus every bike. */
 export default function BikesPage() {
-  const { data, isLoading } = useVehicles();
-  const [open, setOpen] = useState(false);
-  const dueSoon = data?.filter((v) => !v.next_due_pending && daysFromToday(v.next_service_date) <= 7).length ?? 0;
+  const { data: vehicles, isLoading } = useVehicles();
+  const { data: models, isLoading: modelsLoading } = useBikeModelList();
+  const removeModel = useDeleteBikeModel();
+  const [tab, setTab] = useState<"models" | "bikes">("models");
+  const [selling, setSelling] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [renaming, setRenaming] = useState<BikeModel | null>(null);
+  const [deleting, setDeleting] = useState<BikeModel | null>(null);
+  const [viewing, setViewing] = useState<BikeModel | null>(null);
+
+  const list = models ?? [];
+  const bikes = vehicles ?? [];
+  const customers = useMemo(() => new Set((vehicles ?? []).map((v) => v.customer_id)).size, [vehicles]);
+  const dueSoon = bikes.filter((v) => !v.next_due_pending && daysFromToday(v.next_service_date) <= 7).length;
+  const top = list.find((m) => m.bikes > 0);
+  const maxCustomers = Math.max(1, ...list.map((m) => m.customers));
+  const loading = isLoading || modelsLoading;
+
+  const modelColumns: ColumnDef<BikeModel>[] = [
+    {
+      accessorKey: "name",
+      header: ({ column }) => <SortHeader column={column} title="Model" />,
+      cell: ({ row }) => (
+        <div className="min-w-48 space-y-1.5">
+          <div className="flex items-center gap-2 font-medium">
+            <Motorbike className="size-3.5 shrink-0 text-muted-foreground" />
+            {row.original.name}
+          </div>
+          <div className="h-1.5 w-full max-w-56 overflow-hidden rounded-full bg-muted">
+            <div className="h-full rounded-full bg-primary/70" style={{ width: `${(row.original.customers / maxCustomers) * 100}%` }} />
+          </div>
+        </div>
+      ),
+    },
+    { accessorKey: "customers", header: ({ column }) => <SortHeader column={column} title="Customers" />, cell: ({ row }) => <span className="tabular font-semibold">{row.original.customers}</span> },
+    { accessorKey: "bikes", header: ({ column }) => <SortHeader column={column} title="Bikes" />, cell: ({ row }) => <span className="tabular">{row.original.bikes}</span> },
+    {
+      accessorKey: "due_soon",
+      header: ({ column }) => <SortHeader column={column} title="Due this week" />,
+      cell: ({ row }) => <span className={row.original.due_soon ? "tabular font-medium text-amber-700 dark:text-amber-400" : "tabular text-muted-foreground"}>{row.original.due_soon}</span>,
+    },
+    { accessorKey: "bought_elsewhere", header: ({ column }) => <SortHeader column={column} title="Another dealer" />, cell: ({ row }) => <span className="tabular">{row.original.bought_elsewhere}</span> },
+    { accessorKey: "services", header: ({ column }) => <SortHeader column={column} title="Services done" />, cell: ({ row }) => <span className="tabular">{row.original.services}</span> },
+    {
+      id: "actions",
+      header: "",
+      cell: ({ row }) => (
+        <ModelActions
+          model={row.original}
+          onView={() => setViewing(row.original)}
+          onRename={() => setRenaming(row.original)}
+          onDelete={() => setDeleting(row.original)}
+        />
+      ),
+    },
+  ];
+
   return (
     <>
       <PageHeader
         title="Bikes"
-        description={data ? `${data.length} bikes sold · ${dueSoon} due for service within a week` : "Every bike sold by the showroom."}
+        description={models ? `${list.length} models · ${bikes.length} bikes · ${dueSoon} due within a week` : "Bike models and every bike on record."}
         actions={
-          <Button onClick={() => setOpen(true)}>
-            <Plus /> New bike sale
-          </Button>
+          <>
+            <Button variant="outline" onClick={() => setSelling(true)}>
+              <UserPlus /> Customer & bike
+            </Button>
+            <Button onClick={() => setAdding(true)}>
+              <Plus /> Add bike model
+            </Button>
+          </>
         }
       />
-      <DataTable
-        columns={columns}
-        data={data}
-        loading={isLoading}
-        searchPlaceholder="Search model, registration, owner…"
-        initialSorting={[{ id: "next_service_date", desc: false }]}
-        emptyTitle="No bikes yet"
-        emptyDescription="Add a bike, sold here or bought from another dealer, to start service follow-ups."
-        globalFilterFn={(v, q) =>
-          `${v.model} ${v.registration_number} ${v.registration_number.replace(/\s/g, "")} ${v.customer_name} ${v.mobile_number}`.toLowerCase().includes(q)
-        }
-      />
-      {open && <CustomerDialog open={open} onOpenChange={setOpen} />}
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Bike models" icon={Motorbike} loading={modelsLoading} value={list.length} hint={`${list.filter((m) => !m.bikes).length} with no bikes yet`} />
+        <StatCard label="Bikes on record" icon={Motorbike} tone="success" loading={isLoading} value={bikes.length} hint={`${dueSoon} due within a week`} />
+        <StatCard label="Customers with bikes" icon={Users} tone="warning" loading={isLoading} value={customers} hint={`${bikes.filter((v) => v.bought_elsewhere).length} bikes from another dealer`} />
+        <StatCard
+          label="Most popular"
+          icon={Crown}
+          loading={modelsLoading}
+          value={<span className="block truncate text-2xl">{top?.name ?? "—"}</span>}
+          hint={top ? `${top.customers} customer${top.customers === 1 ? "" : "s"} · ${top.bikes} bike${top.bikes === 1 ? "" : "s"}` : "No bikes yet"}
+        />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-7">
+        <Card className="lg:col-span-4">
+          <CardHeader>
+            <CardTitle>Customers by model</CardTitle>
+            <CardDescription>Which models most of our customers ride (top 10)</CardDescription>
+          </CardHeader>
+          <CardContent>{loading ? chartLoading() : <CustomersByModelChart models={list} />}</CardContent>
+        </Card>
+        <Card className="lg:col-span-3">
+          <CardHeader>
+            <CardTitle>Where they were bought</CardTitle>
+            <CardDescription>Sold here, or bought from another dealer and serviced here</CardDescription>
+          </CardHeader>
+          <CardContent>{loading ? chartLoading() : <SourceChart models={list} />}</CardContent>
+        </Card>
+      </div>
+
+      <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="gap-4">
+        <TabsList>
+          <TabsTrigger value="models" className="gap-1.5">
+            Models <span className="tabular rounded-full bg-muted px-1.5 text-xs text-muted-foreground">{list.length}</span>
+          </TabsTrigger>
+          <TabsTrigger value="bikes" className="gap-1.5">
+            All bikes <span className="tabular rounded-full bg-muted px-1.5 text-xs text-muted-foreground">{bikes.length}</span>
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="models">
+          <DataTable
+            columns={modelColumns}
+            data={models}
+            loading={modelsLoading}
+            searchPlaceholder="Search models…"
+            initialSorting={[{ id: "customers", desc: true }]}
+            onRowClick={(m) => m.bikes && setViewing(m)}
+            emptyTitle="No bike models yet"
+            emptyDescription="Add the models the showroom sells and services; they then appear when adding a customer or bike."
+            globalFilterFn={(m, q) => m.name.toLowerCase().includes(q)}
+          />
+        </TabsContent>
+        <TabsContent value="bikes">
+          <DataTable
+            columns={columns}
+            data={vehicles}
+            loading={isLoading}
+            searchPlaceholder="Search model, registration, owner…"
+            initialSorting={[{ id: "next_service_date", desc: false }]}
+            emptyTitle="No bikes yet"
+            emptyDescription="Add a bike, sold here or bought from another dealer, to start service follow-ups."
+            globalFilterFn={(v, q) =>
+              `${v.model} ${v.registration_number} ${v.registration_number.replace(/\s/g, "")} ${v.customer_name} ${v.mobile_number}`.toLowerCase().includes(q)
+            }
+          />
+        </TabsContent>
+      </Tabs>
+
+      {selling && <CustomerDialog open={selling} onOpenChange={setSelling} />}
+      {adding && <BikeModelDialog open={adding} onOpenChange={setAdding} />}
+      {renaming && <BikeModelDialog open={!!renaming} onOpenChange={(o) => !o && setRenaming(null)} model={renaming} />}
+      {viewing && <ModelOwners model={viewing} vehicles={bikes} onClose={() => setViewing(null)} />}
+      {deleting && (
+        <ConfirmDialog
+          open
+          onOpenChange={(o) => !o && setDeleting(null)}
+          title={`Delete ${deleting.name}?`}
+          description="It's taken off the model list. (Only models no bike uses can be deleted.)"
+          confirmLabel="Delete model"
+          destructive
+          onConfirm={() => removeModel.mutate(deleting.id)}
+        />
+      )}
     </>
   );
 }

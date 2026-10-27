@@ -127,6 +127,19 @@ export interface DashboardStats {
   recent_services: RecentService[];
 }
 
+/** A bike model on the Bikes page's list, with how it's used. */
+export interface BikeModel {
+  id: number;
+  name: string;
+  bikes: number;
+  customers: number;
+  /** Bikes of this model due for service within a week. */
+  due_soon: number;
+  bought_elsewhere: number;
+  /** Job cards recorded for bikes of this model. */
+  services: number;
+}
+
 /** The showroom's people (page "Our staff"): not CRM logins. Categories are
  * managed by admins (Sales, Spares and Mechanic to start). */
 export type StaffCategory = string;
@@ -182,6 +195,7 @@ export type LiveEntity =
   | "service_types"
   | "showroom_staff"
   | "staff_categories"
+  | "bike_models"
   | "settings"
   | "service_records";
 

@@ -15,7 +15,7 @@ const SHOWN = 8; // models listed before "Show all"
 /** Dashboard: how many bikes are on record, and how many of each model. */
 export function BikesByModel() {
   const { isLoading } = useVehicles();
-  const models = useBikeModels(); // most sold first
+  const models = useBikeModels().filter((m) => m.count > 0); // most bikes first (models with bikes only)
   const [all, setAll] = useState(false);
   const total = models.reduce((sum, m) => sum + m.count, 0);
   const top = models[0]?.count ?? 1;

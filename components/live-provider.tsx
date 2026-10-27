@@ -28,7 +28,7 @@ const MAX_BACKOFF_MS = 15_000;
 // React Query keys to refresh for each changed entity (see lib/queries.ts).
 const ENTITY_KEYS: Record<LiveEntity, string[]> = {
   customers: ["customers", "customer"],
-  vehicles: ["vehicles", "customer"],
+  vehicles: ["vehicles", "customer", "bike-models"],
   appointments: ["appointments", "customer"],
   calls: ["calls", "customer"],
   due: ["due"],
@@ -36,6 +36,7 @@ const ENTITY_KEYS: Record<LiveEntity, string[]> = {
   service_types: ["service-types"],
   showroom_staff: ["showroom-staff"],
   staff_categories: ["staff-categories", "showroom-staff"],
+  bike_models: ["bike-models", "vehicles"],
   settings: ["settings", "voice-status"],
   service_records: ["service-history", "customer"],
 };

@@ -55,6 +55,7 @@ const NOUNS: [RegExp, string][] = [
   [/^\/api\/appointments/, "booking"],
   [/^\/api\/customers/, "customer"],
   [/^\/api\/vehicles/, "bike"],
+  [/^\/api\/bike-models/, "bike model"],
   [/^\/api\/calls/, "call"],
   [/^\/api\/service-records/, "service"],
   [/^\/api\/service-types/, "service type"],
