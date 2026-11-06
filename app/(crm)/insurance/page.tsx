@@ -4,6 +4,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { ExternalLink, Pencil, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { InsuranceArt } from "@/components/art/insurance";
 import { CustomerAvatar } from "@/components/customer-avatar";
 import { DataTable, SortHeader } from "@/components/data-table";
 import { VehicleDialog } from "@/components/forms/lazy";
@@ -124,6 +125,7 @@ export default function InsurancePage() {
         loading={isLoading}
         searchPlaceholder="Search name, bike, registration, company…"
         initialSorting={[{ id: "insurance_expiry", desc: false }]}
+        emptyArt={filter === "reminders" ? <InsuranceArt /> : undefined}
         emptyTitle={filter === "reminders" ? "No reminders" : "No bikes here"}
         emptyDescription={filter === "reminders" ? "No insurance has expired or expires soon." : "Nothing matches this filter."}
         globalFilterFn={(r, q) => `${r.customer_name} ${r.mobile_number} ${r.model} ${r.registration_number} ${r.insurance_provider ?? ""} ${r.insurance_policy_no ?? ""}`.toLowerCase().includes(q)}

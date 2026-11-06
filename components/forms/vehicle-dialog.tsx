@@ -7,12 +7,15 @@ import { InsuranceFields, type InsuranceValue } from "@/components/forms/insuran
 import { FormDialog } from "@/components/forms/form-dialog";
 import { ModelPicker } from "@/components/model-picker";
 import { useAutosaveDraft, useFormDraft } from "@/lib/drafts";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { todayISO } from "@/lib/format";
-import { useAddVehicle, useCustomers, useScheduleTypeNames, useUpdateVehicle } from "@/lib/queries";
+import { planNext, scheduledTypes } from "@/lib/service-plan";
+import { useAddVehicle, useCustomers, useScheduleTypeNames, useServiceTypes, useUpdateVehicle } from "@/lib/queries";
 import type { Customer, Vehicle } from "@/lib/types";
+
+const NONE = "__none__";
 
 /** Add a bike to a customer, or edit an existing bike. */
 export function VehicleDialog({
@@ -45,17 +48,40 @@ export function VehicleDialog({
   const [odometer, setOdometer] = useState(draft.get("odometer", vehicle?.odometer_km != null ? String(vehicle.odometer_km) : ""));
   const [frame, setFrame] = useState(draft.get("frame", vehicle?.frame_number ?? ""));
   const [engine, setEngine] = useState(draft.get("engine", vehicle?.engine_number ?? ""));
-  const [nextDate, setNextDate] = useState<string | null>(draft.get("nextDate", vehicle?.next_service_date ?? null));
+  const [lastType, setLastType] = useState<string>(draft.get("lastType", ""));
+  // The next service is worked out from the last one; a typed value (or the
+  // bike's saved one, when editing) overrides it until the last service changes.
+  const [dateChoice, setDateChoice] = useState<string | null | undefined>(draft.get("nextDate", vehicle ? vehicle.next_service_date : undefined));
   const allTypes = useScheduleTypeNames(); // a repair is never the next service
   const { data: customers } = useCustomers();
   // Only the customer's ticked services can be the next one (all, if none are set).
   const checked = customer?.service_types ?? customers?.find((c) => c.id === vehicle?.customer_id)?.service_types;
   const serviceTypes = checked?.length ? allTypes.filter((t) => checked.includes(t)) : allTypes;
-  const [nextType, setNextType] = useState(draft.get("nextType", vehicle?.next_service_type ?? serviceTypes[0]));
+  const { data: typeList } = useServiceTypes();
+  const [typeChoice, setTypeChoice] = useState<string | null>(draft.get("nextType", vehicle?.next_service_type ?? null));
+  const plan = planNext({ types: typeList, allowed: checked, lastType, lastDate: lastService, purchase });
+  const nextType = typeChoice ?? plan.type ?? serviceTypes[0];
+  const nextDate = dateChoice !== undefined ? dateChoice : plan.dueFor(nextType);
+  const resetNext = () => {
+    setTypeChoice(null);
+    setDateChoice(undefined);
+  };
+  const changeLastService = (value: string | null) => {
+    setLastService(value);
+    resetNext();
+  };
+  const changeLastType = (value: string) => {
+    setLastType(value === NONE ? "" : value);
+    resetNext();
+  };
+  const changeNextType = (value: string) => {
+    setTypeChoice(value);
+    setDateChoice(undefined); // its date follows the new type's interval
+  };
   const [insurance, setInsurance] = useState<InsuranceValue>(
     draft.get("insurance", { provider: vehicle?.insurance_provider ?? "", policyNo: vehicle?.insurance_policy_no ?? "", expiry: vehicle?.insurance_expiry ?? null }),
   );
-  useAutosaveDraft(draftKey, { insurance, model, registration, elsewhere, dealer, purchase, lastService, odometer, frame, engine, nextDate, nextType });
+  useAutosaveDraft(draftKey, { insurance, model, registration, elsewhere, dealer, purchase, lastService, lastType, odometer, frame, engine, nextDate: dateChoice, nextType: typeChoice });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const add = useAddVehicle();
   const update = useUpdateVehicle();
@@ -129,7 +155,24 @@ export function VehicleDialog({
           </Field>
           <Field>
             <FieldLabel>Last service</FieldLabel>
-            <DatePicker value={lastService} onChange={setLastService} max={todayISO()} placeholder="Never serviced" />
+            <DatePicker value={lastService} onChange={changeLastService} max={todayISO()} placeholder="Never serviced" />
+          </Field>
+          <Field>
+            <FieldLabel>Last service type</FieldLabel>
+            <Select value={lastType || NONE} onValueChange={changeLastType} disabled={!lastService}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Never serviced" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>Not known</SelectItem>
+                {scheduledTypes(typeList).map((t) => (
+                  <SelectItem key={t.name} value={t.name}>
+                    {t.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FieldDescription>Pick the last service date first. The next service is worked out from these.</FieldDescription>
           </Field>
           <Field data-invalid={!!errors.odometer}>
             <FieldLabel htmlFor="v-km">Odometer (km)</FieldLabel>
@@ -158,12 +201,12 @@ export function VehicleDialog({
             <>
           <Field data-invalid={!!errors.nextDate}>
             <FieldLabel>Next service due</FieldLabel>
-            <DatePicker value={nextDate} onChange={setNextDate} invalid={!!errors.nextDate} />
+            <DatePicker value={nextDate} onChange={setDateChoice} invalid={!!errors.nextDate} />
             <FieldError>{errors.nextDate}</FieldError>
           </Field>
           <Field className="sm:col-span-2">
             <FieldLabel>Next service type</FieldLabel>
-            <Select value={nextType} onValueChange={setNextType}>
+            <Select value={nextType} onValueChange={changeNextType}>
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>

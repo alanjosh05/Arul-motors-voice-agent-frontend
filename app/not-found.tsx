@@ -10,7 +10,7 @@ export default function NotFound() {
     <main className="grid min-h-svh place-items-center p-6">
       <AnimateIn preset="notFound" className="flex max-w-md flex-col items-center gap-6 text-center">
         <div data-anim="art">
-          <NotFoundArt className="h-48 sm:h-60" />
+          <NotFoundArt className="h-56 sm:h-72" />
         </div>
         <div data-anim="text" className="space-y-2">
           <p className="text-sm font-medium text-primary">404</p>

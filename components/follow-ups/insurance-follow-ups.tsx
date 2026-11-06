@@ -5,6 +5,7 @@ import { ExternalLink, NotebookPen, Pencil, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { CallButton } from "@/components/actions";
+import { InsuranceArt } from "@/components/art/insurance";
 import { CustomerAvatar } from "@/components/customer-avatar";
 import { DataTable, SortHeader } from "@/components/data-table";
 import { LogCallDialog, VehicleDialog } from "@/components/forms/lazy";
@@ -150,6 +151,7 @@ export function InsuranceFollowUps() {
         loading={isLoading}
         searchPlaceholder="Search name, bike, registration, company…"
         initialSorting={[{ id: "insurance_expiry", desc: false }]}
+        emptyArt={<InsuranceArt />}
         emptyTitle="No insurance reminders"
         emptyDescription="No insurance has expired or expires soon."
         globalFilterFn={(r, q) => `${r.customer_name} ${r.mobile_number} ${r.model} ${r.registration_number} ${r.insurance_provider ?? ""}`.toLowerCase().includes(q)}
