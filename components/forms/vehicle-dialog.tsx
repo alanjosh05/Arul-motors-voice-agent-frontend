@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { DatePicker } from "@/components/date-picker";
 import { BoughtFromField } from "@/components/forms/bought-from-field";
+import { InsuranceFields, type InsuranceValue } from "@/components/forms/insurance-fields";
 import { FormDialog } from "@/components/forms/form-dialog";
 import { ModelPicker } from "@/components/model-picker";
 import { useAutosaveDraft, useFormDraft } from "@/lib/drafts";
@@ -10,7 +11,7 @@ import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { todayISO } from "@/lib/format";
-import { useAddVehicle, useScheduleTypeNames, useUpdateVehicle } from "@/lib/queries";
+import { useAddVehicle, useCustomers, useScheduleTypeNames, useUpdateVehicle } from "@/lib/queries";
 import type { Customer, Vehicle } from "@/lib/types";
 
 /** Add a bike to a customer, or edit an existing bike. */
@@ -22,7 +23,7 @@ export function VehicleDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  customer?: Pick<Customer, "name" | "mobile_number">;
+  customer?: Pick<Customer, "name" | "mobile_number"> & { service_types?: string[] };
   vehicle?: Vehicle;
 }) {
   const editing = !!vehicle;
@@ -45,9 +46,16 @@ export function VehicleDialog({
   const [frame, setFrame] = useState(draft.get("frame", vehicle?.frame_number ?? ""));
   const [engine, setEngine] = useState(draft.get("engine", vehicle?.engine_number ?? ""));
   const [nextDate, setNextDate] = useState<string | null>(draft.get("nextDate", vehicle?.next_service_date ?? null));
-  const serviceTypes = useScheduleTypeNames(); // a repair is never the next service
+  const allTypes = useScheduleTypeNames(); // a repair is never the next service
+  const { data: customers } = useCustomers();
+  // Only the customer's ticked services can be the next one (all, if none are set).
+  const checked = customer?.service_types ?? customers?.find((c) => c.id === vehicle?.customer_id)?.service_types;
+  const serviceTypes = checked?.length ? allTypes.filter((t) => checked.includes(t)) : allTypes;
   const [nextType, setNextType] = useState(draft.get("nextType", vehicle?.next_service_type ?? serviceTypes[0]));
-  useAutosaveDraft(draftKey, { model, registration, elsewhere, dealer, purchase, lastService, odometer, frame, engine, nextDate, nextType });
+  const [insurance, setInsurance] = useState<InsuranceValue>(
+    draft.get("insurance", { provider: vehicle?.insurance_provider ?? "", policyNo: vehicle?.insurance_policy_no ?? "", expiry: vehicle?.insurance_expiry ?? null }),
+  );
+  useAutosaveDraft(draftKey, { insurance, model, registration, elsewhere, dealer, purchase, lastService, odometer, frame, engine, nextDate, nextType });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const add = useAddVehicle();
   const update = useUpdateVehicle();
@@ -71,6 +79,10 @@ export function VehicleDialog({
       dealer_name: elsewhere ? dealer.trim() : "",
       last_service_date: lastService,
       odometer_km: odometer ? Number(odometer) : null,
+      // "" clears (editing); empty is left out when adding.
+      insurance_provider: insurance.provider.trim(),
+      insurance_policy_no: insurance.policyNo.trim(),
+      insurance_expiry: insurance.expiry ?? "",
       ...(askNext && { next_service_date: nextDate!, next_service_type: nextType }),
     };
     if (editing)
@@ -124,6 +136,7 @@ export function VehicleDialog({
             <Input id="v-km" inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="1200" aria-invalid={!!errors.odometer} />
             <FieldError>{errors.odometer}</FieldError>
           </Field>
+          <InsuranceFields idPrefix="v" value={insurance} onChange={setInsurance} />
           {editing && (
             <>
               <Field>

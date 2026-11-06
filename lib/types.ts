@@ -39,6 +39,9 @@ export interface Vehicle {
   dealer_name?: string | null;
   /** The next service's date is set at the oil change (not called until then). */
   next_due_pending?: number | boolean;
+  insurance_provider?: string | null;
+  insurance_policy_no?: string | null;
+  insurance_expiry?: string | null;
   customer_name?: string;
   mobile_number?: string;
 }
@@ -82,6 +85,8 @@ export interface Customer {
   vehicles: Vehicle[];
   next_appointment?: Appointment | null;
   last_call?: CallLog | null;
+  /** Services checked for this customer (the agent follows up only these); empty = not set, all apply. */
+  service_types?: string[];
 }
 
 export interface CustomerDetail extends Customer {

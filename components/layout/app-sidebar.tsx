@@ -41,7 +41,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { initials } from "@/lib/format";
-import { prefetchPage, useStats, useVoiceEnabled, useVoiceStatus } from "@/lib/queries";
+import { needsInsuranceReminder } from "@/lib/insurance";
+import { prefetchPage, useStats, useVehicles, useVoiceEnabled, useVoiceStatus } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 /** The Arul Motors logo: the red AM monogram, no background (vector, after
@@ -195,11 +196,13 @@ export function AppSidebar() {
     [pathname],
   );
   const { data: stats } = useStats();
+  const { data: bikes } = useVehicles();
   const { setOpenMobile } = useSidebar();
   const queryClient = useQueryClient();
   const badges = {
     due: stats?.totals.due_this_week,
     today: stats?.totals.appointments_today,
+    insurance: bikes?.filter((b) => needsInsuranceReminder(b.insurance_expiry)).length,
   };
   const { user } = useAuth();
   const nav = visibleNav(user?.role);

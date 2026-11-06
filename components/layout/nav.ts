@@ -10,6 +10,7 @@ import {
   PhoneOutgoing,
   Receipt,
   Settings,
+  ShieldCheck,
   TrendingUp,
   Users,
   Wallet,
@@ -21,7 +22,7 @@ export type NavItem = {
   href: string;
   icon: LucideIcon;
   group: string;
-  badge?: "due" | "today";
+  badge?: "due" | "today" | "insurance";
   /** Only admins see it (accounts: salaries, P&L). */
   adminOnly?: boolean;
 };
@@ -33,6 +34,7 @@ export const NAV: NavItem[] = [
   { title: "Appointments", href: "/appointments/", icon: CalendarCheck, group: "CRM", badge: "today" },
   { title: "Customers", href: "/customers/", icon: Users, group: "CRM" },
   { title: "Bikes", href: "/bikes/", icon: Motorbike, group: "CRM" },
+  { title: "Insurance", href: "/insurance/", icon: ShieldCheck, group: "CRM", badge: "insurance" },
   // Accounts: pages provisioned, being built (each shows "Coming soon").
   { title: "Profit & loss", href: "/profit-loss/", icon: TrendingUp, group: "Accounts", adminOnly: true },
   { title: "Income", href: "/income/", icon: IndianRupee, group: "Accounts", adminOnly: true },

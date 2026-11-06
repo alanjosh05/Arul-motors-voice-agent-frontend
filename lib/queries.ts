@@ -263,11 +263,17 @@ export function useOverdueDays(serviceType: string | undefined): number {
 
 /** The scheduled service that follows `current` (types with an interval, in
  * order); the last one repeats. */
-export function nextScheduledType(types: ServiceType[] | undefined, current: string): ServiceType | undefined {
+export function nextScheduledType(
+  types: ServiceType[] | undefined,
+  current: string,
+  allowed?: string[], // the customer's checked services (empty/undefined = all)
+): ServiceType | undefined {
   const scheduled = (types ?? []).filter((t) => t.active && t.interval_days);
+  const mine = allowed?.length ? scheduled.filter((t) => allowed.includes(t.name)) : scheduled;
+  if (!mine.length) return undefined;
   const i = scheduled.findIndex((t) => t.name === current);
-  if (i === -1) return scheduled.find((t) => !t.is_free) ?? scheduled[scheduled.length - 1];
-  return scheduled[Math.min(i + 1, scheduled.length - 1)];
+  if (i === -1) return mine.find((t) => !t.is_free) ?? mine[mine.length - 1];
+  return mine.find((t) => scheduled.indexOf(t) > i) ?? mine[mine.length - 1];
 }
 
 // -------------------------------------------------------------- mutations
@@ -327,6 +333,7 @@ export interface CustomerInput {
   name: string;
   mobile_number: string;
   alternate_mobile?: string | null; // "" removes it
+  service_types?: string[]; // the services that apply to this customer
 }
 
 export const useCreateCustomer = () =>
@@ -356,6 +363,10 @@ export interface VehicleSaleInput {
   odometer_km?: number | null;
   last_service_date?: string | null;
   alternate_mobile?: string | null; // only used when the sale creates the customer
+  service_types?: string[]; // only used when the sale creates the customer
+  insurance_provider?: string | null;
+  insurance_policy_no?: string | null;
+  insurance_expiry?: string | null;
   bought_elsewhere?: boolean;
   dealer_name?: string | null;
 }

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { DatePicker } from "@/components/date-picker";
 import { BoughtFromField } from "@/components/forms/bought-from-field";
 import { FormDialog } from "@/components/forms/form-dialog";
+import { InsuranceFields, type InsuranceValue } from "@/components/forms/insurance-fields";
+import { ServicesField } from "@/components/forms/services-field";
 import { ModelPicker } from "@/components/model-picker";
 import { useAutosaveDraft, useFormDraft } from "@/lib/drafts";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldSeparator } from "@/components/ui/field";
@@ -45,9 +47,14 @@ export function CustomerDialog({
     setPurchase(value ? null : todayISO()); // usually not known for another dealer
   };
   const [nextDate, setNextDate] = useState<string | null>(draft.get("nextDate", null));
-  const serviceTypes = useScheduleTypeNames(); // a repair is never the next service
-  const [nextType, setNextType] = useState(draft.get("nextType", serviceTypes[0]));
-  useAutosaveDraft(draftKey, { name, mobile, alternate, model, registration, elsewhere, dealer, purchase, nextDate, nextType });
+  const allTypes = useScheduleTypeNames(); // a repair is never the next service
+  const [services, setServices] = useState<string[]>(draft.get("services", customer?.service_types ?? []));
+  // The first service can only be one of the ticked services.
+  const serviceTypes = services.length ? allTypes.filter((t) => services.includes(t)) : allTypes;
+  const [pickedType, setNextType] = useState(draft.get("nextType", ""));
+  const nextType = serviceTypes.includes(pickedType) ? pickedType : serviceTypes[0];
+  const [insurance, setInsurance] = useState<InsuranceValue>(draft.get("insurance", { provider: "", policyNo: "", expiry: null }));
+  useAutosaveDraft(draftKey, { insurance, name, mobile, alternate, model, registration, elsewhere, dealer, purchase, nextDate, nextType, services });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const create = useCreateCustomer();
@@ -63,6 +70,7 @@ export function CustomerDialog({
     if (alternate.trim() && digits(alternate).length < 10) next.alternate = "Enter a 10-digit number, or leave it empty.";
     else if (alternate.trim() && digits(alternate).slice(-10) === digits(mobile).slice(-10))
       next.alternate = "Same as the main number.";
+    if (!services.length && (!editing || customer?.service_types?.length)) next.services = "Tick at least one service.";
     if (withBike) {
       if (!model.trim()) next.model = "Enter the bike model.";
       if (!registration.trim()) next.registration = "Enter the registration number.";
@@ -72,7 +80,7 @@ export function CustomerDialog({
     if (Object.keys(next).length) return;
 
     if (editing) {
-      await update.mutateAsync({ id: customer.id, name: name.trim(), mobile_number: mobile, alternate_mobile: alternate.trim() });
+      await update.mutateAsync({ id: customer.id, name: name.trim(), mobile_number: mobile, alternate_mobile: alternate.trim(), service_types: services });
       draft.clear();
       onOpenChange(false);
       return;
@@ -82,6 +90,10 @@ export function CustomerDialog({
         name: name.trim(),
         mobile_number: mobile,
         alternate_mobile: alternate.trim() || null,
+        service_types: services,
+        insurance_provider: insurance.provider.trim() || null,
+        insurance_policy_no: insurance.policyNo.trim() || null,
+        insurance_expiry: insurance.expiry,
         model: model.trim(),
         registration_number: registration,
         purchase_date: purchase,
@@ -94,7 +106,7 @@ export function CustomerDialog({
       onOpenChange(false);
       return;
     }
-    const result = await create.mutateAsync({ name: name.trim(), mobile_number: mobile, alternate_mobile: alternate.trim() || null });
+    const result = await create.mutateAsync({ name: name.trim(), mobile_number: mobile, alternate_mobile: alternate.trim() || null, service_types: services });
     draft.clear();
     onOpenChange(false);
     if (result?.id) onCreated?.(Number(result.id));
@@ -132,6 +144,7 @@ export function CustomerDialog({
             <FieldError>{errors.alternate}</FieldError>
           </Field>
         </div>
+        <ServicesField value={services} onChange={setServices} error={errors.services} />
         {!editing && (
           <>
             <FieldSeparator>Bike (optional)</FieldSeparator>
@@ -181,6 +194,7 @@ export function CustomerDialog({
               </Field>
                 </>
               )}
+              <InsuranceFields idPrefix="c" value={insurance} onChange={setInsurance} />
             </div>
           </>
         )}

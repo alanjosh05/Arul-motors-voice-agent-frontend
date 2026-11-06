@@ -24,6 +24,7 @@ import {
   useCloseService,
   useExtractJobCard,
   useRecordWalkInService,
+  useCustomers,
   useScheduleTypeNames,
   useUpdateServiceRecord,
   useServiceTypeNames,
@@ -93,7 +94,8 @@ export function CloseServiceDialog({
   const { data: types } = useServiceTypes();
   const { data: vehicles } = useVehicles();
   const serviceTypes = useServiceTypeNames(); // what the visit can be (repairs too)
-  const scheduleTypes = useScheduleTypeNames(); // what can come next (no repairs)
+  const allScheduleTypes = useScheduleTypeNames();
+  const { data: customers } = useCustomers();
   // Repair types (Service types page), e.g. Accident repair: no follow-up.
   const repairTypes = (types ?? []).filter((t) => t.is_repair).map((t) => t.name);
   const close = useCloseService();
@@ -102,6 +104,9 @@ export function CloseServiceDialog({
   const extract = useExtractJobCard();
   const fileInput = useRef<HTMLInputElement>(null);
   const bike = walkIn ?? vehicles?.find((v) => v.id === (record?.vehicle_id ?? appointment?.vehicle_id));
+  // What can come next: the customer's checked services (all, if none are set); no repairs.
+  const checked = customers?.find((c) => c.id === bike?.customer_id)?.service_types;
+  const scheduleTypes = checked?.length ? allScheduleTypes.filter((t) => checked.includes(t)) : allScheduleTypes;
 
   // Mounted only while open. Everything typed comes back after an accidental
   // close; a chosen file can't be kept by the browser, so the PDF is re-attached.
@@ -190,7 +195,7 @@ export function CloseServiceDialog({
   const schedule: Schedule = repairVisit
     ? "keep"
     : (scheduleChoice ?? (REPAIR_JOBS.includes(jobType) ? "keep" : oilChanged ? "set" : "pending"));
-  const suggested = nextScheduledType(types, serviceType);
+  const suggested = nextScheduledType(types, serviceType, checked);
   // A bike waiting for its oil change: this visit sets that service's date.
   const waiting = !editing && bike?.next_due_pending === 1 ? bike.next_service_type : null;
   const nextType = nextTypeChoice ?? waiting ?? suggested?.name ?? scheduleTypes[0] ?? serviceType;
