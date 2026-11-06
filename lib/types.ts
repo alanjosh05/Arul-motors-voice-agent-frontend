@@ -20,7 +20,9 @@ export type CallOutcome =
   | "already_serviced"
   | "bike_sold"
   | "wrong_number"
-  | "no_answer";
+  | "no_answer"
+  | "insurance_renewed"
+  | "insurance_reminded";
 
 export interface Vehicle {
   id: number;

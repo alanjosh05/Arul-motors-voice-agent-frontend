@@ -199,10 +199,12 @@ export function AppSidebar() {
   const { data: bikes } = useVehicles();
   const { setOpenMobile } = useSidebar();
   const queryClient = useQueryClient();
+  const insuranceDue = bikes?.filter((b) => needsInsuranceReminder(b.insurance_expiry)).length ?? 0;
   const badges = {
-    due: stats?.totals.due_this_week,
+    // Follow-ups: service due this week plus insurance reminders.
+    due: stats ? stats.totals.due_this_week + insuranceDue : undefined,
     today: stats?.totals.appointments_today,
-    insurance: bikes?.filter((b) => needsInsuranceReminder(b.insurance_expiry)).length,
+    insurance: insuranceDue,
   };
   const { user } = useAuth();
   const nav = visibleNav(user?.role);

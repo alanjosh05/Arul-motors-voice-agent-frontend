@@ -44,6 +44,8 @@ const OUTCOME_TONES: Record<CallOutcome, Tone> = {
   bike_sold: "gray",
   wrong_number: "gray",
   no_answer: "gray",
+  insurance_renewed: "green",
+  insurance_reminded: "blue",
 };
 
 export function OutcomeBadge({ outcome }: { outcome: CallOutcome }) {

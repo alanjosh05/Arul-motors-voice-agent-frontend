@@ -13,7 +13,10 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { formatDay, formatMobile } from "@/lib/format";
-import { useDueServices, useVoiceEnabled } from "@/lib/queries";
+import { InsuranceFollowUps } from "@/components/follow-ups/insurance-follow-ups";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { needsInsuranceReminder } from "@/lib/insurance";
+import { useDueServices, useVehicles, useVoiceEnabled } from "@/lib/queries";
 import type { DueService } from "@/lib/types";
 import { AppointmentDialog, LogCallDialog } from "@/components/forms/lazy";
 import { RowAction } from "@/components/row-action";
@@ -78,20 +81,12 @@ const columns: ColumnDef<DueService>[] = [
   { id: "actions", header: "", cell: ({ row }) => <RowActions row={row.original} /> },
 ];
 
-export default function FollowUpsPage() {
+function ServiceFollowUps() {
   const [days, setDays] = useState("7");
   const { data, isLoading } = useDueServices(Number(days));
   const voiceOn = useVoiceEnabled();
   return (
-    <>
-      <PageHeader
-        title="Follow-ups"
-        description={
-          voiceOn
-            ? "Bikes whose service is due and not yet booked: the voice agent's call queue."
-            : "Bikes whose service is due and not yet booked: customers to call."
-        }
-      />
+    <div className="space-y-4">
       {voiceOn && (
         <Alert className="border-primary/20 bg-primary/5">
           <AudioLines className="text-primary" />
@@ -118,6 +113,29 @@ export default function FollowUpsPage() {
           </ToggleGroup>
         }
       />
+    </div>
+  );
+}
+
+export default function FollowUpsPage() {
+  const { data: due } = useDueServices(7);
+  const { data: bikes } = useVehicles();
+  const insuranceCount = bikes?.filter((b) => needsInsuranceReminder(b.insurance_expiry)).length ?? 0;
+  return (
+    <>
+      <PageHeader title="Follow-ups" description="Customers to call: bikes due for service, and bikes whose insurance is expiring." />
+      <Tabs defaultValue="service" className="gap-4">
+        <TabsList>
+          <TabsTrigger value="service">Service follow-ups{due ? ` (${due.length})` : ""}</TabsTrigger>
+          <TabsTrigger value="insurance">Insurance follow-ups{bikes ? ` (${insuranceCount})` : ""}</TabsTrigger>
+        </TabsList>
+        <TabsContent value="service">
+          <ServiceFollowUps />
+        </TabsContent>
+        <TabsContent value="insurance">
+          <InsuranceFollowUps />
+        </TabsContent>
+      </Tabs>
     </>
   );
 }

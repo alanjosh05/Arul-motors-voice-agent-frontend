@@ -12,6 +12,8 @@ export interface CallTarget {
   name: string;
   mobile_number?: string;
   subtitle?: string; // e.g. "Yamaha FZ-S Fi · First free service due"
+  /** What the call is about (default: the service follow-up). */
+  purpose?: "service" | "insurance";
 }
 
 export type CallPhase = "connecting" | "live" | "ended" | "failed";
@@ -101,7 +103,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
           webrtcRequestParams: {
             endpoint: API_URL + config.offer_path,
             headers: new Headers(authHeaders()),
-            requestData: { customer_id: next.id },
+            requestData: { customer_id: next.id, purpose: next.purpose ?? "service" },
           },
         });
       } catch (e) {

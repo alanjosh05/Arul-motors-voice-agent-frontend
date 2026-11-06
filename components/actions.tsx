@@ -25,12 +25,14 @@ import { AppointmentDialog, CloseServiceDialog, CustomerDialog, LogCallDialog } 
 export function CallButton({
   customer,
   subtitle,
+  purpose,
   size = "sm",
   label = "Call with agent",
   iconOnly,
 }: {
   customer: { id: number; name: string; mobile_number?: string };
   subtitle?: string;
+  purpose?: "service" | "insurance";
   size?: "sm" | "default" | "lg";
   label?: string;
   iconOnly?: boolean;
@@ -46,7 +48,7 @@ export function CallButton({
       onFocus={preloadCallCode}
       onClick={(e) => {
         e.stopPropagation();
-        startCall({ id: customer.id, name: customer.name, mobile_number: customer.mobile_number, subtitle });
+        startCall({ id: customer.id, name: customer.name, mobile_number: customer.mobile_number, subtitle, purpose });
       }}
       aria-label={label}
     >

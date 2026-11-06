@@ -22,6 +22,8 @@ const OUTCOME_COLORS: Record<CallOutcome, string> = {
   no_answer: "color-mix(in oklch, var(--muted-foreground) 55%, transparent)",
   bike_sold: "color-mix(in oklch, var(--muted-foreground) 35%, transparent)",
   wrong_number: "color-mix(in oklch, var(--muted-foreground) 20%, transparent)",
+  insurance_renewed: "var(--chart-1)",
+  insurance_reminded: "var(--chart-3)",
 };
 
 const bookingsConfig = { count: { label: "Bookings", color: "var(--chart-1)" } } satisfies ChartConfig;

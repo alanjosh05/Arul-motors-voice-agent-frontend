@@ -86,6 +86,8 @@ export const OUTCOME_LABELS: Record<CallOutcome, string> = {
   bike_sold: "Bike sold",
   wrong_number: "Wrong number",
   no_answer: "No answer",
+  insurance_renewed: "Insurance renewed",
+  insurance_reminded: "Insurance reminded",
 };
 
 export const STATE_LABELS: Record<AppointmentState, string> = {
