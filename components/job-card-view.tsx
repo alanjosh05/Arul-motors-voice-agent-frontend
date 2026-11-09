@@ -228,7 +228,9 @@ export function JobCardViewDialog({
           )}
         </div>
 
-        <DialogFooter className="border-t p-4 sm:justify-between">
+        {/* mx-0 mb-0: the footer's built-in negative margins assume a padded
+            dialog; this one has none, so they pushed it past the edges. */}
+        <DialogFooter className="mx-0 mb-0 flex-row items-center justify-between border-t p-4 sm:justify-between">
           {onEdit ? (
             <Button variant="ghost" onClick={onEdit}>
               <Pencil /> Edit details
