@@ -16,7 +16,7 @@ export default function NotFound() {
           <p className="text-sm font-medium text-primary">404</p>
           <h1 className="text-2xl font-semibold tracking-tight">Page not found</h1>
           <p className="text-sm text-muted-foreground text-pretty">
-            This page doesn&rsquo;t exist or has moved. Check the address, or go back to the CRM.
+            This page doesn&rsquo;t exist or has moved. Check the address, or go back to the ERP.
           </p>
         </div>
         <Button asChild data-anim="action">

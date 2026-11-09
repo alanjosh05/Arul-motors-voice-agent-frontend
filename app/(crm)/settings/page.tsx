@@ -161,7 +161,7 @@ function TeamCard({ me }: { me: StaffUser }) {
     <Card className="pb-0">
       <CardHeader>
         <CardTitle>Team</CardTitle>
-        <CardDescription>People who can sign in to the CRM. Admins can manage the team.</CardDescription>
+        <CardDescription>People who can sign in to the ERP. Admins can manage the team.</CardDescription>
         <CardAction>
           <Button onClick={() => setAdding(true)}>
             <UserPlus /> Add member
@@ -259,7 +259,7 @@ function VoiceAgentCard({ isAdmin }: { isAdmin: boolean }) {
             <FieldDescription>
               {enabled
                 ? "On: staff can start calls with the agent."
-                : "Off: no calls can start (from the CRM or the voice page) and every call button is hidden for all staff."}
+                : "Off: no calls can start (from the ERP or the voice page) and every call button is hidden for all staff."}
               {!isAdmin && " Only an admin can change this."}
             </FieldDescription>
           </FieldContent>
@@ -336,14 +336,14 @@ function DataCard() {
             <FileSpreadsheet className="size-4 text-primary" /> Export to Excel
           </CardTitle>
           <CardDescription>
-            Everything in the CRM as an Excel workbook to filter, sort and work on: Customers &amp; Bikes, Bookings, Calls and Service Types.
+            Everything in the ERP as an Excel workbook to filter, sort and work on: Customers &amp; Bikes, Bookings, Calls and Service Types.
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          Changes made in Excel don&rsquo;t come back into the CRM; edit records here.
+          Changes made in Excel don&rsquo;t come back into the ERP; edit records here.
         </CardContent>
         <CardFooter className="border-t pt-6">
-          <DownloadButton path="/api/admin/export.xlsx" fallbackName="arul-motors-crm.xlsx" icon={FileSpreadsheet} variant="default">
+          <DownloadButton path="/api/admin/export.xlsx" fallbackName="arul-motors-erp.xlsx" icon={FileSpreadsheet} variant="default">
             Download Excel
           </DownloadButton>
         </CardFooter>
@@ -353,7 +353,7 @@ function DataCard() {
           <CardTitle className="flex items-center gap-2">
             <DatabaseBackup className="size-4 text-primary" /> Database backup
           </CardTitle>
-          <CardDescription>A complete copy of the CRM database, e.g. before a big change or to keep a monthly copy.</CardDescription>
+          <CardDescription>A complete copy of the ERP database, e.g. before a big change or to keep a monthly copy.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
           <div className="flex gap-2 rounded-lg border bg-muted/30 p-3">
@@ -429,7 +429,7 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Server className="size-4" /> System</CardTitle>
-              <CardDescription>Where this CRM gets its data.</CardDescription>
+              <CardDescription>Where this ERP gets its data.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 text-sm sm:grid-cols-2">
               <div className="rounded-lg border p-3">

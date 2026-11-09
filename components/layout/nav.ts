@@ -30,13 +30,16 @@ export type NavItem = {
 
 export const NAV: NavItem[] = [
   { title: "Dashboard", href: "/dashboard/", icon: LayoutDashboard, group: "Overview" },
-  { title: "Follow-ups", href: "/follow-ups/", icon: PhoneOutgoing, group: "CRM", badge: "due" },
-  { title: "Call log", href: "/calls/", icon: Headset, group: "CRM" },
-  { title: "Appointments", href: "/appointments/", icon: CalendarCheck, group: "CRM", badge: "today" },
-  { title: "Customers", href: "/customers/", icon: Users, group: "CRM" },
-  { title: "Bikes", href: "/bikes/", icon: Motorbike, group: "CRM" },
-  { title: "Insurance", href: "/insurance/", icon: ShieldCheck, group: "CRM", badge: "insurance" },
-  { title: "Parts used", href: "/parts/", icon: Package, group: "CRM" },
+  // Customers: who they are, what they ride, and keeping in touch.
+  { title: "Customers", href: "/customers/", icon: Users, group: "Customers" },
+  { title: "Bikes", href: "/bikes/", icon: Motorbike, group: "Customers" },
+  { title: "Follow-ups", href: "/follow-ups/", icon: PhoneOutgoing, group: "Customers", badge: "due" },
+  { title: "Call log", href: "/calls/", icon: Headset, group: "Customers" },
+  { title: "Insurance", href: "/insurance/", icon: ShieldCheck, group: "Customers", badge: "insurance" },
+  // Workshop: bookings, the parts they use, and the service schedule.
+  { title: "Appointments", href: "/appointments/", icon: CalendarCheck, group: "Workshop", badge: "today" },
+  { title: "Parts used", href: "/parts/", icon: Package, group: "Workshop" },
+  { title: "Service types", href: "/service-types/", icon: Wrench, group: "Workshop" },
   // Accounts: pages provisioned, being built (each shows "Coming soon").
   { title: "Profit & loss", href: "/profit-loss/", icon: TrendingUp, group: "Accounts", adminOnly: true },
   { title: "Income", href: "/income/", icon: IndianRupee, group: "Accounts", adminOnly: true },
@@ -44,7 +47,6 @@ export const NAV: NavItem[] = [
   { title: "Salaries", href: "/salaries/", icon: Wallet, group: "Accounts", adminOnly: true },
   { title: "Reports", href: "/reports/", icon: FileSpreadsheet, group: "Accounts", adminOnly: true },
   { title: "Our staff", href: "/our-staff/", icon: Contact, group: "Workspace" },
-  { title: "Service types", href: "/service-types/", icon: Wrench, group: "Workspace" },
   { title: "Settings", href: "/settings/", icon: Settings, group: "Workspace" },
 ];
 

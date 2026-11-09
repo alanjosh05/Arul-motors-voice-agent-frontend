@@ -116,7 +116,7 @@ export function IdleLogout() {
             <Clock className="size-5" /> Still there?
           </AlertDialogTitle>
           <AlertDialogDescription>
-            The CRM hasn&rsquo;t been used for 14 minutes. For safety you&rsquo;ll be signed out in{" "}
+            The ERP hasn&rsquo;t been used for 14 minutes. For safety you&rsquo;ll be signed out in{" "}
             <span className="tabular font-semibold text-foreground">{left} s</span>.
           </AlertDialogDescription>
         </AlertDialogHeader>

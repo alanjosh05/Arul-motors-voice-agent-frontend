@@ -80,7 +80,7 @@ export default function LoginPage() {
               Every service reminder, handled.
             </h1>
             <p data-anim="sub" className="text-white/75 text-pretty">
-              The showroom CRM with a voice agent that follows up with every customer, books their service date and logs the outcome.
+              The showroom ERP: customers and service follow-ups, the workshop and its parts, insurance, staff and accounts, with a voice agent that calls every customer when their service is due.
             </p>
           </div>
         </div>

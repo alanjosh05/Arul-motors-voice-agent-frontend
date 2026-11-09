@@ -9,7 +9,7 @@ const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
-  title: { default: "Arul Motors CRM", template: "%s · Arul Motors CRM" },
+  title: { default: "Arul Motors ERP", template: "%s · Arul Motors ERP" },
   description: "Service follow-ups, bookings and the AI voice agent for Arul Motors Yamaha, Nazareth.",
 };
 

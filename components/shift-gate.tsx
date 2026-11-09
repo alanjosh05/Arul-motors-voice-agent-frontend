@@ -43,7 +43,7 @@ export function ShiftGate({ children }: { children: React.ReactNode }) {
     return (
       <>
         <div className="sticky top-0 z-40 flex items-center justify-center gap-2 bg-warning/20 px-4 py-1.5 text-center text-xs font-medium">
-          <ShieldAlert className="size-3.5" /> Out of shift hours · admin access. The CRM opens for staff at {opensText(shift)}.
+          <ShieldAlert className="size-3.5" /> Out of shift hours · admin access. The ERP opens for staff at {opensText(shift)}.
         </div>
         {children}
       </>
@@ -58,7 +58,7 @@ export function ShiftGate({ children }: { children: React.ReactNode }) {
           <p className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
             <Clock className="size-3.5" /> Out of shift hours
           </p>
-          <h1 className="text-2xl font-semibold tracking-tight">The CRM is closed now</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">The ERP is closed now</h1>
           <p className="text-sm text-muted-foreground">
             Open every day {formatHour(shift.start)} – {formatHour(shift.end)}. It opens again at{" "}
             <span className="font-medium text-foreground">{opensText(shift)}</span>.
@@ -68,7 +68,7 @@ export function ShiftGate({ children }: { children: React.ReactNode }) {
           <div className="space-y-3 rounded-lg border border-warning/40 bg-warning/10 p-4 text-left text-sm">
             <p className="font-medium">Continue as admin?</p>
             <p className="text-muted-foreground">
-              Staff can&rsquo;t use the CRM now. As an admin you can, but the server is switched off from {formatHour(shift.end)} to{" "}
+              Staff can&rsquo;t use the ERP now. As an admin you can, but the server is switched off from {formatHour(shift.end)} to{" "}
               {formatHour(shift.start)} to save cost: if pages don&rsquo;t load, start the VM in Google Cloud first.
             </p>
             <Button
@@ -105,7 +105,7 @@ export function ShiftNotice() {
     <p className="flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
       <Clock className="mt-0.5 size-4 shrink-0" />
       <span>
-        Out of shift hours: the CRM is open {formatHour(shift.start)} – {formatHour(shift.end)}. Only admins can sign in now.
+        Out of shift hours: the ERP is open {formatHour(shift.start)} – {formatHour(shift.end)}. Only admins can sign in now.
       </span>
     </p>
   );
