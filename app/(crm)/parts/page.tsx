@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { errorMessage, openFile } from "@/lib/api";
+import { ApiError, errorMessage, openFile } from "@/lib/api";
 import { formatDay } from "@/lib/format";
 import { rupees } from "@/lib/job-card";
 import { useMergePart, usePartUses, usePartsUsage, useUnmergePart } from "@/lib/queries";
@@ -184,7 +184,7 @@ function UseItem({ use, showPart }: { use: PartUse; showPart?: boolean }) {
 /** Part uses, newest first, 50 at a time: the next page loads when the end of
  * the list scrolls into view (or with the button). */
 function UsesList({ part, range, q, showPart, emptyText }: { part?: string; range: Range; q?: string; showPart?: boolean; emptyText: string }) {
-  const { data, isLoading, isFetching, fetchNextPage, hasNextPage, isFetchingNextPage } = usePartUses({ part, range, q });
+  const { data, isLoading, isError, error, isFetching, fetchNextPage, hasNextPage, isFetchingNextPage } = usePartUses({ part, range, q });
   const items = useMemo(() => data?.pages.flatMap((p) => p.items) ?? [], [data]);
   const total = data?.pages[0]?.total ?? 0;
   const end = useRef<HTMLDivElement>(null);
@@ -203,6 +203,14 @@ function UsesList({ part, range, q, showPart, emptyText }: { part?: string; rang
       <div className="space-y-3 p-4 sm:px-6">
         {[0, 1, 2].map((i) => <Skeleton key={i} className="h-14 w-full" />)}
       </div>
+    );
+  if (isError)
+    return (
+      <p className="px-6 py-10 text-center text-sm text-destructive">
+        {error instanceof ApiError && error.status === 404
+          ? "The server needs updating to show uses. Deploy the latest backend."
+          : `Couldn't load the uses: ${errorMessage(error)}`}
+      </p>
     );
   if (items.length === 0) return <p className="px-6 py-10 text-center text-sm text-muted-foreground">{emptyText}</p>;
   return (

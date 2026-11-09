@@ -175,6 +175,12 @@ export const usePartsUsage = (range: { start: string; end: string } | null) =>
   useQuery({
     queryKey: keys.partsUsage(range?.start, range?.end),
     queryFn: () => api<PartsUsage>("/api/parts-usage", { query: range ?? {} }),
+    // Fill fields an older backend doesn't send, so a frontend deployed before
+    // its backend still renders (the uses list then says the server needs updating).
+    select: (data: PartsUsage): PartsUsage => ({
+      ...data,
+      parts: data.parts.map((p) => ({ ...p, key: p.key ?? p.name.toLowerCase(), merged: p.merged ?? [], part_nos: p.part_nos ?? [] })),
+    }),
     placeholderData: keepPreviousData,
   });
 
