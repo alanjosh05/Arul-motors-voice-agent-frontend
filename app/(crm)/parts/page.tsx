@@ -62,14 +62,30 @@ const Qty = ({ use }: { use: PartUse }) => (
   </div>
 );
 
+/** A part's numbers as written on its job cards (handwriting gives one part
+ * several spellings): the first few, then "+N more", the full list on hover.
+ * Kept short so a long list can't widen the table past the page. */
+function PartNumbers({ numbers, show = 3 }: { numbers: string[]; show?: number }) {
+  if (numbers.length === 0) return null;
+  const rest = numbers.length - show;
+  return (
+    <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 whitespace-normal font-mono text-xs text-muted-foreground" title={numbers.join(", ")}>
+      {numbers.slice(0, show).map((n) => (
+        <span key={n}>{n}</span>
+      ))}
+      {rest > 0 && <span className="rounded bg-muted px-1.5 font-sans text-[11px]">+{rest} more</span>}
+    </p>
+  );
+}
+
 const partColumns: ColumnDef<PartUsage>[] = [
   {
     accessorKey: "name",
     header: ({ column }) => <SortHeader column={column} title="Part" />,
     cell: ({ row }) => (
-      <div>
+      <div className="min-w-0 max-w-[22rem]">
         <p className="font-medium">{row.original.name}</p>
-        {row.original.part_nos.length > 0 && <p className="font-mono text-xs text-muted-foreground">{row.original.part_nos.join(", ")}</p>}
+        <PartNumbers numbers={row.original.part_nos} />
       </div>
     ),
   },
