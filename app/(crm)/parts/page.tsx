@@ -1,7 +1,8 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { FileText, IndianRupee, Layers, Package, Wrench } from "lucide-react";
+import { format } from "date-fns";
+import { FileText, FileX, IndianRupee, Layers, Loader2, Package, Wrench } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -22,13 +23,19 @@ import type { PartUsage, PartUse } from "@/lib/types";
 /** Opens the scanned job card PDF of the service the part was used in. */
 function JobCardButton({ use }: { use: PartUse }) {
   const [opening, setOpening] = useState(false);
-  if (!use.has_report) return <span className="text-xs text-muted-foreground">No PDF</span>;
+  if (!use.has_report)
+    return (
+      <Button variant="ghost" size="sm" className="h-8 text-muted-foreground" disabled title="This service was closed without a job card PDF">
+        <FileX /> No PDF
+      </Button>
+    );
   return (
     <Button
       variant="outline"
       size="sm"
-      className="h-7"
+      className="h-8"
       disabled={opening}
+      title="Open the scanned job card"
       onClick={(e) => {
         e.stopPropagation();
         setOpening(true);
@@ -37,30 +44,55 @@ function JobCardButton({ use }: { use: PartUse }) {
           .finally(() => setOpening(false));
       }}
     >
-      <FileText /> {use.job_card_no ? `Card ${use.job_card_no}` : "Job card"}
+      {opening ? <Loader2 className="animate-spin" /> : <FileText />} Job card
     </Button>
+  );
+}
+
+/** A calendar-style date: "30" over "Oct 2026", weekday on hover. */
+function DateChip({ date }: { date: string }) {
+  const d = new Date(`${date}T00:00:00`);
+  return (
+    <div className="flex w-14 shrink-0 flex-col items-center rounded-lg border bg-muted/40 py-1.5 leading-none" title={formatDay(date)}>
+      <span className="text-[10px] font-medium uppercase text-muted-foreground">{format(d, "EEE")}</span>
+      <span className="tabular mt-1 text-lg font-semibold">{format(d, "dd")}</span>
+      <span className="mt-1 text-[10px] text-muted-foreground">{format(d, "MMM yy")}</span>
+    </div>
   );
 }
 
 function Bike({ use }: { use: PartUse }) {
   return (
-    <div className="min-w-0 space-y-0.5">
-      <p className="text-sm">
-        {use.model} <span className="plate">{use.registration_number}</span>
+    <div className="min-w-0 space-y-1">
+      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-medium">
+        <span className="truncate">{use.model}</span>
+        <span className="plate">{use.registration_number}</span>
       </p>
-      <Link href={`/customers/view/?id=${use.customer_id}`} className="text-xs text-muted-foreground hover:underline">
-        {use.customer_name}
-      </Link>
+      <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+        {use.customer_name && (
+          <Link href={`/customers/view/?id=${use.customer_id}`} onClick={(e) => e.stopPropagation()} className="font-medium text-foreground/80 hover:underline">
+            {use.customer_name}
+          </Link>
+        )}
+        {use.service_type && <><span aria-hidden>·</span><span>{use.service_type}</span></>}
+        {use.job_card_no && <><span aria-hidden>·</span><span className="tabular">Card {use.job_card_no}</span></>}
+      </p>
     </div>
   );
 }
 
-const Qty = ({ use }: { use: PartUse }) => (
-  <div className="flex flex-wrap items-center gap-1.5">
-    <span className="tabular font-medium">×{use.qty}</span>
-    {use.warranty ? <ToneBadge tone="blue">warranty</ToneBadge> : <span className="tabular text-xs text-muted-foreground">{rupees(use.qty * use.amount)}</span>}
-  </div>
-);
+function Qty({ use }: { use: PartUse }) {
+  const each = use.amount ?? 0;
+  return (
+    <div className="text-right leading-tight">
+      <p className="tabular text-sm font-semibold">{use.warranty ? "Free" : rupees(use.qty * each)}</p>
+      <p className="tabular text-xs text-muted-foreground">
+        {use.qty} × {rupees(each)}
+      </p>
+      {use.warranty && <ToneBadge tone="blue" className="mt-1">Warranty</ToneBadge>}
+    </div>
+  );
+}
 
 /** A part's numbers as written on its job cards (handwriting gives one part
  * several spellings): the first few, then "+N more", the full list on hover.
@@ -124,8 +156,7 @@ const useColumns: ColumnDef<UseRow>[] = [
     header: ({ column }) => <SortHeader column={column} title="Date" />,
     cell: ({ row }) => (
       <div>
-        <p className="tabular text-sm">{formatDay(row.original.date)}</p>
-        <p className="text-xs text-muted-foreground">{row.original.service_type}</p>
+        <p className="tabular whitespace-nowrap text-sm">{formatDay(row.original.date)}</p>
       </div>
     ),
   },
@@ -139,8 +170,8 @@ const useColumns: ColumnDef<UseRow>[] = [
       </div>
     ),
   },
-  { accessorKey: "qty", header: ({ column }) => <SortHeader column={column} title="Qty" />, cell: ({ row }) => <Qty use={row.original} /> },
   { id: "bike", header: "Bike", cell: ({ row }) => <Bike use={row.original} /> },
+  { accessorKey: "qty", header: ({ column }) => <SortHeader column={column} title="Qty · price" />, cell: ({ row }) => <Qty use={row.original} /> },
   { id: "card", header: "Job card", cell: ({ row }) => <JobCardButton use={row.original} /> },
 ];
 
@@ -208,23 +239,36 @@ export default function PartsPage() {
         />
       )}
       <Dialog open={!!open} onOpenChange={(o) => !o && setOpen(null)}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="gap-0 p-0 sm:max-w-3xl">
           {open && (
             <>
-              <DialogHeader>
-                <DialogTitle>{open.name}</DialogTitle>
-                <DialogDescription>
-                  {open.qty} used on {open.services} job card{open.services === 1 ? "" : "s"}, {rangeLabel(range, "past")}.
-                </DialogDescription>
+              <DialogHeader className="space-y-2 border-b p-6 pb-4">
+                <DialogTitle className="flex items-center gap-2 text-lg">
+                  <Package className="size-5 text-primary" /> {open.name}
+                </DialogTitle>
+                <DialogDescription>Every job card it was used on, {rangeLabel(range, "past")}, newest first.</DialogDescription>
+                <PartNumbers numbers={open.part_nos} show={6} />
               </DialogHeader>
-              <ul className="max-h-[60vh] divide-y overflow-y-auto pr-1 text-sm">
+              <div className="grid grid-cols-2 gap-px border-b bg-border sm:grid-cols-4">
+                {[
+                  ["Used", String(open.qty)],
+                  ["Job cards", String(open.services)],
+                  ["Charged", rupees(open.amount)],
+                  ["Under warranty", String(open.warranty_qty)],
+                ].map(([label, value]) => (
+                  <div key={label} className="bg-background px-6 py-3">
+                    <p className="text-xs text-muted-foreground">{label}</p>
+                    <p className="tabular text-lg font-semibold">{value}</p>
+                  </div>
+                ))}
+              </div>
+              <ul className="max-h-[55vh] divide-y overflow-y-auto">
                 {open.uses.map((u, i) => (
-                  <li key={`${u.record_id}-${i}`} className="grid grid-cols-[6.5rem_1fr_auto_auto] items-center gap-3 py-2.5">
-                    <div>
-                      <p className="tabular">{formatDay(u.date)}</p>
-                      <p className="text-xs text-muted-foreground">{u.service_type}</p>
+                  <li key={`${u.record_id}-${i}`} className="flex items-center gap-4 px-6 py-3 transition-colors hover:bg-muted/40">
+                    <DateChip date={u.date} />
+                    <div className="min-w-0 flex-1">
+                      <Bike use={u} />
                     </div>
-                    <Bike use={u} />
                     <Qty use={u} />
                     <JobCardButton use={u} />
                   </li>
