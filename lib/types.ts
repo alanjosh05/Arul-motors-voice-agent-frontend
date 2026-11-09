@@ -337,20 +337,30 @@ export interface RecentService {
 
 /** One part's total across the closed services' job cards (GET /api/parts-usage). */
 export type PartUsage = {
+  key: string; // the part's id for /api/parts-usage/uses and merging
   name: string;
   part_nos: string[];
+  merged: { key: string; name: string }[]; // other spellings counted as this part
   qty: number;
   paid_qty: number;
   warranty_qty: number;
   services: number;
   amount: number; // ₹ charged (warranty parts are free)
   last_used: string;
-  uses: PartUse[]; // every use, newest first
 };
-/** One part on one closed service's job card. */
+export type PartsUsage = { parts: PartUsage[]; totals: { kinds: number; qty: number; amount: number; services: number } };
+
+/** One part on one closed service's job card (GET /api/parts-usage/uses). */
 export type PartUse = {
+  id: number;
   record_id: number;
   date: string;
+  name: string; // as written on this job card
+  part_key: string;
+  part_no: string | null;
+  qty: number;
+  amount: number; // ₹ per unit as written (warranty parts aren't charged)
+  warranty: boolean;
   service_type: string;
   job_card_no: string | null;
   has_report: boolean;
@@ -359,9 +369,5 @@ export type PartUse = {
   model: string;
   customer_id: number;
   customer_name: string;
-  part_no: string | null;
-  qty: number;
-  amount: number; // ₹ per unit as written (warranty parts aren't charged)
-  warranty: boolean;
 };
-export type PartsUsage = { parts: PartUsage[]; totals: { kinds: number; qty: number; amount: number; services: number } };
+export type PartUsesPage = { items: PartUse[]; next: string | null; total: number };

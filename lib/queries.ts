@@ -1,6 +1,6 @@
 "use client";
 
-import { keepPreviousData, type QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, type QueryClient, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { useLiveStatus } from "@/components/live-provider";
@@ -16,6 +16,7 @@ import type {
   DueService,
   JobCardFeedback,
   PartsUsage,
+  PartUsesPage,
   ServiceHistoryItem,
   ServiceType,
   StaffUser,
@@ -169,13 +170,33 @@ export const useDueServices = (days: number) =>
 
 export const useAppointments = () => useQuery(queries.appointments());
 
-/** Parts used on the closed services' job cards, added up; null range = all time. */
+/** Parts used on the closed services' job cards, one row per part; null range = all time. */
 export const usePartsUsage = (range: { start: string; end: string } | null) =>
   useQuery({
     queryKey: keys.partsUsage(range?.start, range?.end),
     queryFn: () => api<PartsUsage>("/api/parts-usage", { query: range ?? {} }),
     placeholderData: keepPreviousData,
   });
+
+/** Part uses, newest first, 50 at a time (fetchNextPage for more): one part's
+ * (`part` = its key) or every part's, optionally searched. */
+export const usePartUses = (filter: { part?: string; range: { start: string; end: string } | null; q?: string }) =>
+  useInfiniteQuery({
+    queryKey: [...keys.partsUsage(filter.range?.start, filter.range?.end), "uses", filter.part ?? "", filter.q ?? ""],
+    queryFn: ({ pageParam }) =>
+      api<PartUsesPage>("/api/parts-usage/uses", {
+        query: { part: filter.part, q: filter.q, after: pageParam || undefined, ...(filter.range ?? {}) },
+      }),
+    initialPageParam: "",
+    getNextPageParam: (last) => last.next ?? undefined,
+    placeholderData: keepPreviousData,
+  });
+
+export const useMergePart = () =>
+  useCrmMutation((body: { part: string; into: string }) => api<{ message: string }>("/api/parts-usage/merge", { method: "POST", body }));
+
+export const useUnmergePart = () =>
+  useCrmMutation((part: string) => api<{ message: string }>("/api/parts-usage/merge", { method: "DELETE", query: { part } }));
 
 export const useCalls = () => useQuery(queries.calls());
 
@@ -294,7 +315,7 @@ export function useRefreshAll() {
   return useCallback(
     () =>
       Promise.all(
-        ["stats", "customers", "customer", "vehicles", "due", "appointments", "calls", "service-types", "service-history"].map((key) =>
+        ["stats", "customers", "customer", "vehicles", "due", "appointments", "calls", "service-types", "service-history", "parts-usage"].map((key) =>
           qc.invalidateQueries({ queryKey: [key] }),
         ),
       ),

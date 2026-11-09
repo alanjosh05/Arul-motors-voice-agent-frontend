@@ -2,22 +2,26 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
-import { FileText, FileX, IndianRupee, Layers, Loader2, Package, Wrench } from "lucide-react";
+import { FileText, FileX, IndianRupee, Layers, Loader2, Merge, Package, Search, Wrench, X } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@/components/auth-provider";
 import { DataTable, SortHeader } from "@/components/data-table";
 import { PageHeader } from "@/components/page-header";
 import { type ChartRange, RangeFilter, rangeDates, rangeLabel } from "@/components/range-filter";
 import { StatCard } from "@/components/stat-card";
 import { ToneBadge } from "@/components/status-badges";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { errorMessage, openFile } from "@/lib/api";
 import { formatDay } from "@/lib/format";
 import { rupees } from "@/lib/job-card";
-import { usePartsUsage } from "@/lib/queries";
+import { useMergePart, usePartUses, usePartsUsage, useUnmergePart } from "@/lib/queries";
 import type { PartUsage, PartUse } from "@/lib/types";
 
 /** Opens the scanned job card PDF of the service the part was used in. */
@@ -117,6 +121,11 @@ const partColumns: ColumnDef<PartUsage>[] = [
     cell: ({ row }) => (
       <div className="min-w-0 max-w-[22rem]">
         <p className="font-medium">{row.original.name}</p>
+        {row.original.merged.length > 0 && (
+          <p className="truncate text-xs text-muted-foreground" title={row.original.merged.map((m) => m.name).join(", ")}>
+            Includes {row.original.merged.map((m) => m.name).join(", ")}
+          </p>
+        )}
         <PartNumbers numbers={row.original.part_nos} />
       </div>
     ),
@@ -148,52 +157,184 @@ const partColumns: ColumnDef<PartUsage>[] = [
   },
 ];
 
-type UseRow = PartUse & { name: string; key: string };
+type Range = { start: string; end: string } | null;
 
-const useColumns: ColumnDef<UseRow>[] = [
-  {
-    accessorKey: "date",
-    header: ({ column }) => <SortHeader column={column} title="Date" />,
-    cell: ({ row }) => (
-      <div>
-        <p className="tabular whitespace-nowrap text-sm">{formatDay(row.original.date)}</p>
+/** One use: when, the part (in the every-use list), the bike and customer,
+ * qty × price and the job card. */
+function UseItem({ use, showPart }: { use: PartUse; showPart?: boolean }) {
+  return (
+    <li className="flex items-center gap-4 px-4 py-3 transition-colors hover:bg-muted/40 sm:px-6">
+      <DateChip date={use.date} />
+      <div className="min-w-0 flex-1 space-y-1">
+        {showPart && (
+          <p className="flex flex-wrap items-baseline gap-x-2 text-sm font-semibold">
+            {use.name}
+            {use.part_no && <span className="font-mono text-xs font-normal text-muted-foreground">{use.part_no}</span>}
+          </p>
+        )}
+        <Bike use={use} />
       </div>
-    ),
-  },
-  {
-    accessorKey: "name",
-    header: ({ column }) => <SortHeader column={column} title="Part" />,
-    cell: ({ row }) => (
-      <div>
-        <p className="font-medium">{row.original.name}</p>
-        {row.original.part_no && <p className="font-mono text-xs text-muted-foreground">{row.original.part_no}</p>}
+      <Qty use={use} />
+      <JobCardButton use={use} />
+    </li>
+  );
+}
+
+/** Part uses, newest first, 50 at a time: the next page loads when the end of
+ * the list scrolls into view (or with the button). */
+function UsesList({ part, range, q, showPart, emptyText }: { part?: string; range: Range; q?: string; showPart?: boolean; emptyText: string }) {
+  const { data, isLoading, isFetching, fetchNextPage, hasNextPage, isFetchingNextPage } = usePartUses({ part, range, q });
+  const items = useMemo(() => data?.pages.flatMap((p) => p.items) ?? [], [data]);
+  const total = data?.pages[0]?.total ?? 0;
+  const end = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = end.current;
+    if (!el || !hasNextPage) return;
+    const seen = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting && !isFetchingNextPage) fetchNextPage();
+    }, { rootMargin: "300px" });
+    seen.observe(el);
+    return () => seen.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  if (isLoading)
+    return (
+      <div className="space-y-3 p-4 sm:px-6">
+        {[0, 1, 2].map((i) => <Skeleton key={i} className="h-14 w-full" />)}
       </div>
-    ),
-  },
-  { id: "bike", header: "Bike", cell: ({ row }) => <Bike use={row.original} /> },
-  { accessorKey: "qty", header: ({ column }) => <SortHeader column={column} title="Qty · price" />, cell: ({ row }) => <Qty use={row.original} /> },
-  { id: "card", header: "Job card", cell: ({ row }) => <JobCardButton use={row.original} /> },
-];
+    );
+  if (items.length === 0) return <p className="px-6 py-10 text-center text-sm text-muted-foreground">{emptyText}</p>;
+  return (
+    <div className={isFetching && !isFetchingNextPage ? "opacity-60 transition-opacity" : "transition-opacity"}>
+      <ul className="divide-y">
+        {items.map((u) => <UseItem key={u.id} use={u} showPart={showPart} />)}
+      </ul>
+      <div ref={end} className="flex items-center justify-between gap-3 border-t px-4 py-3 text-xs text-muted-foreground sm:px-6">
+        <span className="tabular">
+          Showing {items.length.toLocaleString("en-IN")} of {total.toLocaleString("en-IN")}
+        </span>
+        {hasNextPage && (
+          <Button variant="outline" size="sm" className="h-8" disabled={isFetchingNextPage} onClick={() => fetchNextPage()}>
+            {isFetchingNextPage && <Loader2 className="animate-spin" />} Load more
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Every use, searchable on the server (part, bike, registration, customer, card no.). */
+function EveryUse({ range, toolbar, emptyText }: { range: Range; toolbar: React.ReactNode; emptyText: string }) {
+  const [text, setText] = useState("");
+  const [q, setQ] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setQ(text.trim()), 300);
+    return () => clearTimeout(t);
+  }, [text]);
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative sm:max-w-xs sm:flex-1">
+          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Search part, bike, registration, customer, card no…" className="pl-8" />
+        </div>
+        <div className="flex flex-wrap items-center gap-2 sm:ml-auto">{toolbar}</div>
+      </div>
+      <div className="overflow-hidden rounded-xl border bg-card">
+        <UsesList range={range} q={q} showPart emptyText={q ? `Nothing matches “${q}”.` : emptyText} />
+      </div>
+    </div>
+  );
+}
+
+/** Admins: count this part's name as another part (spellings differ between job cards). */
+function MergeDialog({ part, open, onOpenChange }: { part: PartUsage; open: boolean; onOpenChange: (open: boolean) => void }) {
+  const { data } = usePartsUsage(null); // every part ever used, whatever the page's range
+  const [into, setInto] = useState("");
+  const merge = useMergePart();
+  const options = (data?.parts ?? []).filter((p) => p.key !== part.key).sort((a, b) => a.name.localeCompare(b.name));
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Merge “{part.name}”</DialogTitle>
+          <DialogDescription>
+            Use this when job cards spell the same part differently. Its uses then count under the part you choose. You can unmerge it later.
+          </DialogDescription>
+        </DialogHeader>
+        <Select value={into} onValueChange={setInto}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Count it as…" />
+          </SelectTrigger>
+          <SelectContent>
+            {options.map((p) => (
+              <SelectItem key={p.key} value={p.key}>
+                {p.name} <span className="text-muted-foreground">· {p.qty} used</span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button
+            disabled={!into || merge.isPending}
+            onClick={() => merge.mutate({ part: part.key, into }, { onSuccess: () => onOpenChange(false) })}
+          >
+            <Merge /> Merge
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function PartsPage() {
-  const [range, setRange] = useState<ChartRange>({ preset: "all" });
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+  const [range, setRange] = useState<ChartRange>({ preset: 30 });
   const [view, setView] = useState<"parts" | "uses">("parts");
   const dates = useMemo(() => rangeDates(range, "past"), [range]);
   const { data, isLoading } = usePartsUsage(dates);
-  const [open, setOpen] = useState<PartUsage | null>(null);
+  const [openKey, setOpenKey] = useState<string | null>(null);
+  const [merging, setMerging] = useState<PartUsage | null>(null);
+  const unmerge = useUnmergePart();
+  const open = data?.parts.find((p) => p.key === openKey) ?? null;
   const totals = data?.totals;
-  const uses = useMemo<UseRow[]>(
-    () => (data?.parts ?? []).flatMap((p) => p.uses.map((u, i) => ({ ...u, name: p.name, key: `${p.name}-${u.record_id}-${i}` }))),
-    [data],
+  const columns = useMemo<ColumnDef<PartUsage>[]>(
+    () =>
+      isAdmin
+        ? [
+            ...partColumns,
+            {
+              id: "actions",
+              header: "",
+              cell: ({ row }) => (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-muted-foreground"
+                  title="Count this part as another part"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMerging(row.original);
+                  }}
+                >
+                  <Merge /> Merge
+                </Button>
+              ),
+            },
+          ]
+        : partColumns,
+    [isAdmin],
   );
   const toolbar = (
-    <div className="flex flex-wrap items-center gap-2">
+    <>
       <ToggleGroup type="single" variant="outline" size="sm" value={view} onValueChange={(v) => v && setView(v as typeof view)}>
         <ToggleGroupItem value="parts" className="px-2.5 text-xs">By part</ToggleGroupItem>
-        <ToggleGroupItem value="uses" className="px-2.5 text-xs">Every use ({uses.length})</ToggleGroupItem>
+        <ToggleGroupItem value="uses" className="px-2.5 text-xs">Every use</ToggleGroupItem>
       </ToggleGroup>
       <RangeFilter value={range} onChange={setRange} allowAll />
-    </div>
+    </>
   );
   const empty = `No job card in ${rangeLabel(range, "past")} lists any parts.`;
   return (
@@ -210,36 +351,22 @@ export default function PartsPage() {
       </div>
       {view === "parts" ? (
         <DataTable
-          key="parts"
-          columns={partColumns}
+          columns={columns}
           data={isLoading ? undefined : data?.parts}
           loading={isLoading}
           searchPlaceholder="Search part name or number…"
           initialSorting={[{ id: "qty", desc: true }]}
-          onRowClick={setOpen}
+          onRowClick={(p) => setOpenKey(p.key)}
           emptyTitle="No parts used"
           emptyDescription={empty}
-          globalFilterFn={(r, q) => `${r.name} ${r.part_nos.join(" ")}`.toLowerCase().includes(q)}
+          globalFilterFn={(r, q) => `${r.name} ${r.part_nos.join(" ")} ${r.merged.map((m) => m.name).join(" ")}`.toLowerCase().includes(q)}
           toolbar={toolbar}
         />
       ) : (
-        <DataTable
-          key="uses"
-          columns={useColumns}
-          data={isLoading ? undefined : uses}
-          loading={isLoading}
-          searchPlaceholder="Search part, bike, registration, customer, card no…"
-          initialSorting={[{ id: "date", desc: true }]}
-          emptyTitle="No parts used"
-          emptyDescription={empty}
-          globalFilterFn={(r, q) =>
-            `${r.name} ${r.part_no ?? ""} ${r.model} ${r.registration_number} ${r.customer_name} ${r.job_card_no ?? ""}`.toLowerCase().includes(q)
-          }
-          toolbar={toolbar}
-        />
+        <EveryUse range={dates} toolbar={toolbar} emptyText={empty} />
       )}
-      <Dialog open={!!open} onOpenChange={(o) => !o && setOpen(null)}>
-        <DialogContent className="gap-0 p-0 sm:max-w-3xl">
+      <Dialog open={!!open} onOpenChange={(o) => !o && setOpenKey(null)}>
+        <DialogContent className="flex max-h-[90vh] flex-col gap-0 p-0 sm:max-w-3xl">
           {open && (
             <>
               <DialogHeader className="space-y-2 border-b p-6 pb-4">
@@ -248,6 +375,28 @@ export default function PartsPage() {
                 </DialogTitle>
                 <DialogDescription>Every job card it was used on, {rangeLabel(range, "past")}, newest first.</DialogDescription>
                 <PartNumbers numbers={open.part_nos} show={6} />
+                {open.merged.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                    Includes
+                    {open.merged.map((m) => (
+                      <span key={m.key} className="inline-flex items-center gap-1 rounded-md border bg-muted/40 py-0.5 pr-1 pl-2 text-foreground">
+                        {m.name}
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                            aria-label={`Unmerge ${m.name}`}
+                            title="Count it on its own again"
+                            disabled={unmerge.isPending}
+                            onClick={() => unmerge.mutate(m.key)}
+                          >
+                            <X className="size-3" />
+                          </button>
+                        )}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </DialogHeader>
               <div className="grid grid-cols-2 gap-px border-b bg-border sm:grid-cols-4">
                 {[
@@ -262,22 +411,14 @@ export default function PartsPage() {
                   </div>
                 ))}
               </div>
-              <ul className="max-h-[55vh] divide-y overflow-y-auto">
-                {open.uses.map((u, i) => (
-                  <li key={`${u.record_id}-${i}`} className="flex items-center gap-4 px-6 py-3 transition-colors hover:bg-muted/40">
-                    <DateChip date={u.date} />
-                    <div className="min-w-0 flex-1">
-                      <Bike use={u} />
-                    </div>
-                    <Qty use={u} />
-                    <JobCardButton use={u} />
-                  </li>
-                ))}
-              </ul>
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                <UsesList part={open.key} range={dates} emptyText={empty} />
+              </div>
             </>
           )}
         </DialogContent>
       </Dialog>
+      {merging && <MergeDialog part={merging} open={!!merging} onOpenChange={(o) => !o && setMerging(null)} />}
     </>
   );
 }
