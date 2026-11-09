@@ -345,6 +345,23 @@ export type PartUsage = {
   services: number;
   amount: number; // ₹ charged (warranty parts are free)
   last_used: string;
-  uses: { date: string; job_card_no: string | null; registration_number: string; model: string; qty: number; warranty: boolean }[];
+  uses: PartUse[]; // every use, newest first
+};
+/** One part on one closed service's job card. */
+export type PartUse = {
+  record_id: number;
+  date: string;
+  service_type: string;
+  job_card_no: string | null;
+  has_report: boolean;
+  vehicle_id: number;
+  registration_number: string;
+  model: string;
+  customer_id: number;
+  customer_name: string;
+  part_no: string | null;
+  qty: number;
+  amount: number; // ₹ per unit as written (warranty parts aren't charged)
+  warranty: boolean;
 };
 export type PartsUsage = { parts: PartUsage[]; totals: { kinds: number; qty: number; amount: number; services: number } };
