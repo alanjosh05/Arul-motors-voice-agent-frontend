@@ -5,6 +5,7 @@ import { useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { useLiveStatus } from "@/components/live-provider";
 import { api, apiUpload, errorMessage } from "./api";
+import { saveSession } from "./session";
 import { SERVICE_TYPES } from "./format";
 import type {
   AppSettings,
@@ -673,7 +674,11 @@ export function useDeleteStaff() {
 export const useChangePassword = () =>
   useMutation({
     mutationFn: (body: { current_password: string; new_password: string }) =>
-      api("/api/auth/password", { method: "POST", body }),
-    onSuccess: () => toast.success("Password changed"),
+      api<{ message: string; token: string; user: StaffUser }>("/api/auth/password", { method: "POST", body }),
+    // The server ends every session with the old password; keep this one going.
+    onSuccess: (data) => {
+      if (data?.token) saveSession(data.token, data.user);
+      toast.success(data?.message ?? "Password changed");
+    },
     onError: (error) => toast.error(errorMessage(error)),
   });

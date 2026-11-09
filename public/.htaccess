@@ -1,4 +1,4 @@
-# Arul Motors CRM on GoDaddy (Apache): caching, compression, error page.
+# Arul Motors ERP on GoDaddy (Apache): caching, compression, security headers, error page.
 # Copied into out/ by `npm run build`; upload it with the rest of out/.
 
 Options -Indexes
@@ -29,4 +29,21 @@ ErrorDocument 404 /404.html
 
   Header always set X-Content-Type-Options "nosniff"
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+  # Security headers (2026-11-09).
+  # HTTPS only, for two years.
+  Header always set Strict-Transport-Security "max-age=63072000; includeSubDomains"
+  # No other site may show the ERP inside a frame (clickjacking).
+  Header always set X-Frame-Options "DENY"
+  # The microphone is for agent calls; nothing else is ever needed.
+  Header always set Permissions-Policy "microphone=(self), camera=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=()"
+  Header always set Cross-Origin-Opener-Policy "same-origin-allow-popups"
+  # Content-Security-Policy: what pages may load and where they may send data.
+  # - Data only goes to this site and the backend (a script injected by an
+  #   attacker couldn't send customer data or the login anywhere else).
+  # - Scripts only from this site; 'unsafe-inline' because Next.js writes its
+  #   page data in inline scripts; blob: for the call panel's audio worklet.
+  # - No plugins from other sites, no frames, no <base> or form tricks.
+  # If the backend ever moves, change connect-src here too.
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' https://backend.arulmotors.com wss://backend.arulmotors.com; object-src 'self' blob:; frame-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests"
 </IfModule>

@@ -7,6 +7,7 @@ import {
   ExternalLink,
   FileSpreadsheet,
   KeyRound,
+  LogOut,
   Server,
   ShieldCheck,
   Trash2,
@@ -30,7 +31,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { API_URL, downloadFile, errorMessage } from "@/lib/api";
+import { API_URL, api, downloadFile, errorMessage } from "@/lib/api";
 import { formatTimestamp, initials } from "@/lib/format";
 import {
   useChangePassword,
@@ -53,12 +54,12 @@ function PasswordCard() {
     <Card>
       <CardHeader>
         <CardTitle>Password</CardTitle>
-        <CardDescription>Use at least 8 characters.</CardDescription>
+        <CardDescription>At least 10 characters, not a common password and not your username. Changing it signs you out on your other devices.</CardDescription>
       </CardHeader>
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          if (next.length < 8) return setError("New password must be at least 8 characters.");
+          if (next.length < 10) return setError("New password must be at least 10 characters.");
           if (next !== confirm) return setError("Passwords don't match.");
           setError("");
           change.mutate(
@@ -94,6 +95,46 @@ function PasswordCard() {
   );
 }
 
+/** Sign out on every device: for a lost phone or a password someone may have seen. */
+function SessionsCard() {
+  const { logout } = useAuth();
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Signed-in devices</CardTitle>
+        <CardDescription>
+          Lost a phone, or signed in on a shared computer? Sign out everywhere: every device (this one too) has to sign in again.
+        </CardDescription>
+      </CardHeader>
+      <CardFooter className="border-t pt-6">
+        <Button variant="outline" className="text-destructive hover:text-destructive" disabled={busy} onClick={() => setConfirming(true)}>
+          {busy ? <Spinner /> : <LogOut />} Sign out of all devices
+        </Button>
+      </CardFooter>
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title="Sign out of all devices?"
+        description="Every device signed in to your account, this one included, is signed out straight away."
+        confirmLabel="Sign out everywhere"
+        destructive
+        onConfirm={async () => {
+          setBusy(true);
+          try {
+            await api("/api/auth/logout-all", { method: "POST" });
+            logout();
+          } catch (e) {
+            toast.error(errorMessage(e));
+            setBusy(false);
+          }
+        }}
+      />
+    </Card>
+  );
+}
+
 function AddMemberDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const create = useCreateStaff();
   const [fullName, setFullName] = useState("");
@@ -113,7 +154,7 @@ function AddMemberDialog({ open, onOpenChange }: { open: boolean; onOpenChange: 
       submitLabel="Add member"
       pending={create.isPending}
       onSubmit={() => {
-        if (password.length < 8) return setError("Password must be at least 8 characters.");
+        if (password.length < 10) return setError("Password must be at least 10 characters.");
         setError("");
         create.mutate({ full_name: fullName.trim() || undefined, username: username.trim(), password, role }, { onSuccess: () => onOpenChange(false) });
       }}
@@ -411,6 +452,7 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
           <PasswordCard />
+          <SessionsCard />
         </TabsContent>
         {isAdmin && (
           <TabsContent value="team">
