@@ -1,39 +1,30 @@
 "use client";
 
-import { ChevronDown, FileText, History, Pencil, Trash2 } from "lucide-react";
+import { Eye, FileText, History, Loader2, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 import { ServiceArt } from "@/components/art/service";
 import { useAuth } from "@/components/auth-provider";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { JobCardViewDialog, useOpenJobCard } from "@/components/job-card-view";
 import { CloseServiceDialog } from "@/components/forms/lazy";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { errorMessage, openFile } from "@/lib/api";
-import { formatDate, formatKm, formatTimestamp } from "@/lib/format";
-import { FEEDBACK_CHECKS, rupees } from "@/lib/job-card";
+import { formatDate, formatKm } from "@/lib/format";
+import { rupees } from "@/lib/job-card";
 import { useDeleteServiceRecord, useServiceHistory } from "@/lib/queries";
 import type { ServiceHistoryItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="grid grid-cols-[7.5rem_1fr] gap-2 text-xs">
-      <span className="text-muted-foreground">{label}</span>
-      <span>{children}</span>
-    </div>
-  );
-}
-
 function Entry({ item, subtitle }: { item: ServiceHistoryItem; subtitle?: string }) {
-  const [opening, setOpening] = useState(false);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const { user } = useAuth();
   const remove = useDeleteServiceRecord();
+  const pdf = useOpenJobCard(item.id);
+  const isAdmin = user?.role === "admin" && item.id != null;
   if (item.kind === "booking") {
     return (
       <li className="relative space-y-0.5 pl-5">
@@ -51,9 +42,6 @@ function Entry({ item, subtitle }: { item: ServiceHistoryItem; subtitle?: string
     item.amount ? rupees(item.amount) : "No charge",
     item.job_card_no ? `Job card ${item.job_card_no}` : null,
   ].filter(Boolean);
-  const feedbackBits = FEEDBACK_CHECKS.filter(({ key }) => item.feedback?.[key] !== undefined).map(
-    ({ key, label, yes, no }) => `${label}: ${item.feedback![key] ? yes : no}`,
-  );
   return (
     <li className="relative space-y-1 pl-5">
       <span className="absolute top-1.5 left-0 size-2 rounded-full bg-primary/70" />
@@ -70,96 +58,49 @@ function Entry({ item, subtitle }: { item: ServiceHistoryItem; subtitle?: string
       {!!item.jobs_done?.length && <p className="text-sm">{item.jobs_done.join(", ")}</p>}
       {item.work_done && <p className="line-clamp-2 text-sm">{item.work_done}</p>}
 
-      {open && (
-        <div className="space-y-1.5 rounded-lg border bg-muted/20 p-2.5">
-          {item.customer_requests && <Row label="Customer asked">{item.customer_requests}</Row>}
-          {item.received_date && <Row label="Received">{formatDate(item.received_date, "d MMM yyyy")}</Row>}
-          {!!item.parts?.length && (
-            <Row label="Parts">
-              <ul className="space-y-0.5">
-                {item.parts.map((p, i) => (
-                  <li key={i} className="flex justify-between gap-2">
-                    <span>
-                      {p.name} {p.part_no && <span className="font-mono text-muted-foreground">({p.part_no})</span>} ×{p.qty}
-                      {p.warranty && <span className="text-muted-foreground"> · warranty</span>}
-                    </span>
-                    <span className="tabular">{p.warranty ? "—" : rupees(p.qty * p.amount)}</span>
-                  </li>
-                ))}
-              </ul>
-            </Row>
-          )}
-          {!!item.labour?.length && (
-            <Row label="Labour">
-              <ul className="space-y-0.5">
-                {item.labour.map((l, i) => (
-                  <li key={i} className="flex justify-between gap-2">
-                    <span>{l.description}</span>
-                    <span className="tabular">{rupees(l.amount)}</span>
-                  </li>
-                ))}
-              </ul>
-            </Row>
-          )}
-          {(!!item.parts?.length || !!item.labour?.length) && (
-            <Row label="Total">
-              <span className="font-medium">
-                {rupees(item.amount)}{" "}
-                <span className="font-normal text-muted-foreground">(parts {rupees(item.parts_total)} + labour {rupees(item.labour_total)})</span>
-              </span>
-            </Row>
-          )}
-          {!!item.delivery_checks?.length && <Row label="Delivery checks">{item.delivery_checks.join(" · ")}</Row>}
-          {(item.feedback?.rating || feedbackBits.length > 0) && (
-            <Row label="Feedback">{[item.feedback?.rating, ...feedbackBits].filter(Boolean).join(" · ")}</Row>
-          )}
-          {(item.technician || item.mechanic || item.supervisor) && (
-            <Row label="People">
-              {[item.technician && `Bay/tech: ${item.technician}`, item.mechanic && `Mechanic: ${item.mechanic}`, item.supervisor && `Supervisor: ${item.supervisor}`]
-                .filter(Boolean)
-                .join(" · ")}
-            </Row>
-          )}
-          {item.remarks && <Row label="Remarks">{item.remarks}</Row>}
-          {item.created_by && <Row label="Closed by">{item.created_by}</Row>}
-          {item.updated_by && (
-            <Row label="Last edited">
-              {item.updated_by}
-              {item.updated_at ? ` · ${formatTimestamp(item.updated_at)}` : ""}
-            </Row>
-          )}
-        </div>
-      )}
-
-      <div className="flex flex-wrap gap-2 pt-0.5">
-        <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setOpen((v) => !v)}>
-          <ChevronDown className={cn("transition-transform", open && "rotate-180")} /> {open ? "Hide details" : "Details"}
+      {/* One row, equal widths: View · Job card · Edit, and Delete (admins). */}
+      <div className={cn("grid gap-1.5 pt-1", isAdmin ? "grid-cols-[1fr_1fr_1fr_auto]" : "grid-cols-3")}>
+        <Button variant="outline" size="sm" className="h-8" onClick={() => setOpen(true)}>
+          <Eye /> View
         </Button>
-        {item.id != null && item.document_name && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7"
-            disabled={opening}
-            onClick={() => {
-              setOpening(true);
-              openFile(`/api/service-records/${item.id}/report`)
-                .catch((e) => toast.error(errorMessage(e)))
-                .finally(() => setOpening(false));
-            }}
-          >
-            <FileText /> Job card
-          </Button>
-        )}
-        <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setEditing(true)}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8"
+          disabled={!item.document_name || pdf.opening}
+          title={item.document_name ? "Open the scanned job card" : "No job card PDF for this service"}
+          onClick={pdf.open}
+        >
+          {pdf.opening ? <Loader2 className="animate-spin" /> : <FileText />} Job card
+        </Button>
+        <Button variant="outline" size="sm" className="h-8" onClick={() => setEditing(true)}>
           <Pencil /> Edit
         </Button>
-        {user?.role === "admin" && item.id != null && (
-          <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive" onClick={() => setDeleting(true)}>
-            <Trash2 /> Delete
+        {isAdmin && (
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            aria-label="Delete this service"
+            title="Delete this service"
+            onClick={() => setDeleting(true)}
+          >
+            <Trash2 />
           </Button>
         )}
       </div>
+      {open && (
+        <JobCardViewDialog
+          item={item}
+          subtitle={subtitle}
+          open={open}
+          onOpenChange={setOpen}
+          onEdit={() => {
+            setOpen(false);
+            setEditing(true);
+          }}
+        />
+      )}
       {deleting && item.id != null && (
         <ConfirmDialog
           open={deleting}
