@@ -2,7 +2,7 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
-import { FileText, FileX, IndianRupee, Layers, Loader2, Merge, Package, Search, Wrench, X } from "lucide-react";
+import { FileText, FileX, IndianRupee, Layers, Loader2, Merge, Package, Search, Trash2, Wrench, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -15,13 +15,14 @@ import { ToneBadge } from "@/components/status-badges";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ApiError, errorMessage, openFile } from "@/lib/api";
 import { formatDay } from "@/lib/format";
 import { rupees } from "@/lib/job-card";
-import { useMergePart, usePartUses, usePartsUsage, useUnmergePart } from "@/lib/queries";
+import { useMergeParts, usePartUses, usePartsUsage, useUnmergePart } from "@/lib/queries";
 import type { PartUsage, PartUse } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -299,41 +300,83 @@ function PartUses({ part, range, emptyText }: { part: string; range: Range; empt
   );
 }
 
-/** Admins: count this part's name as another part (spellings differ between job cards). */
+/** Admins: count other names written on job cards as this part (handwriting
+ * spells one part several ways), and remove a merge made by mistake. */
 function MergeDialog({ part, open, onOpenChange }: { part: PartUsage; open: boolean; onOpenChange: (open: boolean) => void }) {
   const { data } = usePartsUsage(null); // every part ever used, whatever the page's range
-  const [into, setInto] = useState("");
-  const merge = useMergePart();
+  const current = data?.parts.find((p) => p.key === part.key) ?? part; // live: updates after a change
+  const [picked, setPicked] = useState<string[]>([]);
+  const merge = useMergeParts();
+  const unmerge = useUnmergePart();
   const options = (data?.parts ?? []).filter((p) => p.key !== part.key).sort((a, b) => a.name.localeCompare(b.name));
+  const toggle = (key: string) => setPicked((keys) => (keys.includes(key) ? keys.filter((k) => k !== key) : [...keys, key]));
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Merge “{part.name}”</DialogTitle>
+      <DialogContent className="flex max-h-[90vh] flex-col gap-0 p-0 sm:max-w-lg">
+        <DialogHeader className="space-y-1.5 border-b p-6 pb-4">
+          <DialogTitle className="flex items-center gap-2">
+            <Merge className="size-5 text-primary" /> Merge into “{part.name}”
+          </DialogTitle>
           <DialogDescription>
-            Use this when job cards spell the same part differently. Its uses then count under the part you choose. You can unmerge it later.
+            Tick the names that are really {part.name}, written differently on some job cards. Their uses then count under {part.name}.
+            The job cards themselves don&apos;t change.
           </DialogDescription>
         </DialogHeader>
-        <Select value={into} onValueChange={setInto}>
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Count it as…" />
-          </SelectTrigger>
-          <SelectContent>
-            {options.map((p) => (
-              <SelectItem key={p.key} value={p.key}>
-                {p.name} <span className="text-muted-foreground">· {p.qty} used</span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button
-            disabled={!into || merge.isPending}
-            onClick={() => merge.mutate({ part: part.key, into }, { onSuccess: () => onOpenChange(false) })}
-          >
-            <Merge /> Merge
-          </Button>
+
+        {current.merged.length > 0 && (
+          <div className="space-y-2 border-b px-6 py-4">
+            <p className="text-xs font-medium text-muted-foreground">Merged already</p>
+            <ul className="space-y-1.5">
+              {current.merged.map((m) => (
+                <li key={m.key} className="flex items-center justify-between gap-3 rounded-lg border bg-muted/30 py-1.5 pr-1.5 pl-3 text-sm">
+                  <span className="truncate">{m.name}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    disabled={unmerge.isPending}
+                    title="Merged by mistake? Count it on its own again"
+                    onClick={() => unmerge.mutate(m.key)}
+                  >
+                    <Trash2 /> Remove
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <Command className="min-h-0 flex-1 rounded-none">
+          <CommandInput placeholder="Search parts…" />
+          <CommandList className="max-h-72">
+            <CommandEmpty>No part with that name.</CommandEmpty>
+            {options.map((p) => {
+              const on = picked.includes(p.key);
+              return (
+                <CommandItem key={p.key} value={`${p.name} ${p.part_nos.join(" ")}`} onSelect={() => toggle(p.key)} className="gap-3 px-4 py-2">
+                  <Checkbox checked={on} className="pointer-events-none" aria-hidden />
+                  <span className="min-w-0 flex-1 truncate">{p.name}</span>
+                  <span className="tabular shrink-0 text-xs text-muted-foreground">{p.qty} used</span>
+                </CommandItem>
+              );
+            })}
+          </CommandList>
+        </Command>
+
+        <DialogFooter className="mx-0 mb-0 flex-row items-center justify-between border-t p-4 sm:justify-between">
+          <span className="text-xs text-muted-foreground">{picked.length ? `${picked.length} selected` : "Select one or more"}</span>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+            <Button
+              disabled={!picked.length || merge.isPending}
+              onClick={() =>
+                merge.mutate({ parts: picked, into: part.key, intoName: part.name }, { onSuccess: () => setPicked([]) })
+              }
+            >
+              {merge.isPending ? <Loader2 className="animate-spin" /> : <Merge />} Merge{picked.length > 1 ? ` ${picked.length}` : ""}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -365,7 +408,7 @@ export default function PartsPage() {
                   variant="ghost"
                   size="sm"
                   className="h-8 text-muted-foreground"
-                  title="Count this part as another part"
+                  title="Merge other spellings of this part into it"
                   onClick={(e) => {
                     e.stopPropagation();
                     setMerging(row.original);

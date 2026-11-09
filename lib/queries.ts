@@ -198,11 +198,20 @@ export const usePartUses = (filter: { part?: string; range: { start: string; end
     placeholderData: keepPreviousData,
   });
 
-export const useMergePart = () =>
-  useCrmMutation((body: { part: string; into: string }) => api<{ message: string }>("/api/parts-usage/merge", { method: "POST", body }));
+/** Count several part names as one part (one request each, one toast). */
+export const useMergeParts = () =>
+  useCrmMutation(
+    async ({ parts, into }: { parts: string[]; into: string; intoName: string }) => {
+      for (const part of parts) await api("/api/parts-usage/merge", { method: "POST", body: { part, into } });
+      return {};
+    },
+    { success: ({ parts, intoName }) => `${parts.length} name${parts.length === 1 ? "" : "s"} now count as ${intoName}.` },
+  );
 
 export const useUnmergePart = () =>
-  useCrmMutation((part: string) => api<{ message: string }>("/api/parts-usage/merge", { method: "DELETE", query: { part } }));
+  useCrmMutation((part: string) => api<{ message: string }>("/api/parts-usage/merge", { method: "DELETE", query: { part } }), {
+    success: "Removed. It counts on its own again.",
+  });
 
 export const useCalls = () => useQuery(queries.calls());
 
