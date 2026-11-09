@@ -23,6 +23,7 @@ import { formatDay } from "@/lib/format";
 import { rupees } from "@/lib/job-card";
 import { useMergePart, usePartUses, usePartsUsage, useUnmergePart } from "@/lib/queries";
 import type { PartUsage, PartUse } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 /** Opens the scanned job card PDF of the service the part was used in. */
 function JobCardButton({ use }: { use: PartUse }) {
@@ -223,27 +224,70 @@ function UsesList({ part, range, q, showPart, emptyText }: { part?: string; rang
   );
 }
 
-/** Every use, searchable on the server (part, bike, registration, customer, card no.). */
-function EveryUse({ range, toolbar, emptyText }: { range: Range; toolbar: React.ReactNode; emptyText: string }) {
+/** A search box whose value settles 300 ms after typing stops (searches run
+ * on the server, so not one request per key). */
+function useSearch() {
   const [text, setText] = useState("");
   const [q, setQ] = useState("");
   useEffect(() => {
     const t = setTimeout(() => setQ(text.trim()), 300);
     return () => clearTimeout(t);
   }, [text]);
+  return { text, setText, q };
+}
+
+function SearchBox({ value, onChange, placeholder, className }: { value: string; onChange: (v: string) => void; placeholder: string; className?: string }) {
+  return (
+    <div className={cn("relative", className)}>
+      <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+      <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="pr-8 pl-8" />
+      {value && (
+        <button
+          type="button"
+          aria-label="Clear search"
+          className="absolute top-1/2 right-2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+          onClick={() => onChange("")}
+        >
+          <X className="size-3.5" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** Every use, searchable on the server (part, bike, registration, customer, card no.). */
+function EveryUse({ range, toolbar, emptyText }: { range: Range; toolbar: React.ReactNode; emptyText: string }) {
+  const search = useSearch();
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <div className="relative sm:max-w-xs sm:flex-1">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Search part, bike, registration, customer, card no…" className="pl-8" />
-        </div>
+        <SearchBox
+          value={search.text}
+          onChange={search.setText}
+          placeholder="Search part, bike, registration, customer, card no…"
+          className="sm:max-w-xs sm:flex-1"
+        />
         <div className="flex flex-wrap items-center gap-2 sm:ml-auto">{toolbar}</div>
       </div>
       <div className="overflow-hidden rounded-xl border bg-card">
-        <UsesList range={range} q={q} showPart emptyText={q ? `Nothing matches “${q}”.` : emptyText} />
+        <UsesList range={range} q={search.q} showPart emptyText={search.q ? `Nothing matches “${search.q}”.` : emptyText} />
       </div>
     </div>
+  );
+}
+
+/** One part's uses with its own search (bike, registration, customer, card no.). */
+function PartUses({ part, range, emptyText }: { part: string; range: Range; emptyText: string }) {
+  const search = useSearch();
+  return (
+    <>
+      <div className="border-b px-4 py-3 sm:px-6">
+        <SearchBox value={search.text} onChange={search.setText} placeholder="Search bike, registration, customer, card no…" />
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <UsesList part={part} range={range} q={search.q} emptyText={search.q ? `No use of this part matches “${search.q}”.` : emptyText} />
+      </div>
+    </>
   );
 }
 
@@ -411,9 +455,7 @@ export default function PartsPage() {
                   </div>
                 ))}
               </div>
-              <div className="min-h-0 flex-1 overflow-y-auto">
-                <UsesList part={open.key} range={dates} emptyText={empty} />
-              </div>
+              <PartUses key={open.key} part={open.key} range={dates} emptyText={empty} />
             </>
           )}
         </DialogContent>
