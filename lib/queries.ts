@@ -15,6 +15,7 @@ import type {
   DashboardStats,
   DueService,
   JobCardFeedback,
+  PartsUsage,
   ServiceHistoryItem,
   ServiceType,
   StaffUser,
@@ -37,6 +38,7 @@ export const keys = {
   voiceStatus: ["voice-status"] as const,
   settings: ["settings"] as const,
   serviceHistory: (vehicleId: number) => ["service-history", vehicleId] as const,
+  partsUsage: (start?: string, end?: string) => ["parts-usage", start ?? "", end ?? ""] as const,
 };
 
 export const CALL_LOG_LIMIT = 1000; // newest calls loaded into the call log (API default)
@@ -166,6 +168,14 @@ export const useDueServices = (days: number) =>
   useQuery({ ...queries.due(days), placeholderData: keepPreviousData });
 
 export const useAppointments = () => useQuery(queries.appointments());
+
+/** Parts used on the closed services' job cards, added up; null range = all time. */
+export const usePartsUsage = (range: { start: string; end: string } | null) =>
+  useQuery({
+    queryKey: keys.partsUsage(range?.start, range?.end),
+    queryFn: () => api<PartsUsage>("/api/parts-usage", { query: range ?? {} }),
+    placeholderData: keepPreviousData,
+  });
 
 export const useCalls = () => useQuery(queries.calls());
 

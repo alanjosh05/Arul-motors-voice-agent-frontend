@@ -38,7 +38,7 @@ const ENTITY_KEYS: Record<LiveEntity, string[]> = {
   staff_categories: ["staff-categories", "showroom-staff"],
   bike_models: ["bike-models", "vehicles", "charts"],
   settings: ["settings", "voice-status"],
-  service_records: ["service-history", "customer"],
+  service_records: ["service-history", "customer", "parts-usage"],
 };
 
 const callKey = (c: ActiveCall) => c.call_id ?? c.id;

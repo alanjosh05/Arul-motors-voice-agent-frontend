@@ -334,3 +334,17 @@ export interface RecentService {
   model: string;
   registration_number: string;
 }
+
+/** One part's total across the closed services' job cards (GET /api/parts-usage). */
+export type PartUsage = {
+  name: string;
+  part_nos: string[];
+  qty: number;
+  paid_qty: number;
+  warranty_qty: number;
+  services: number;
+  amount: number; // ₹ charged (warranty parts are free)
+  last_used: string;
+  uses: { date: string; job_card_no: string | null; registration_number: string; model: string; qty: number; warranty: boolean }[];
+};
+export type PartsUsage = { parts: PartUsage[]; totals: { kinds: number; qty: number; amount: number; services: number } };

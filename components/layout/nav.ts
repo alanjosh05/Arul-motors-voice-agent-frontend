@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   type LucideIcon,
   Motorbike,
+  Package,
   PhoneOutgoing,
   Receipt,
   Settings,
@@ -35,6 +36,7 @@ export const NAV: NavItem[] = [
   { title: "Customers", href: "/customers/", icon: Users, group: "CRM" },
   { title: "Bikes", href: "/bikes/", icon: Motorbike, group: "CRM" },
   { title: "Insurance", href: "/insurance/", icon: ShieldCheck, group: "CRM", badge: "insurance" },
+  { title: "Parts used", href: "/parts/", icon: Package, group: "CRM" },
   // Accounts: pages provisioned, being built (each shows "Coming soon").
   { title: "Profit & loss", href: "/profit-loss/", icon: TrendingUp, group: "Accounts", adminOnly: true },
   { title: "Income", href: "/income/", icon: IndianRupee, group: "Accounts", adminOnly: true },
